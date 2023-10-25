@@ -8,3 +8,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+    #this is to make sure this works
