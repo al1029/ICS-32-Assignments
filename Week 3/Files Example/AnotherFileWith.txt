@@ -1,0 +1,2 @@
+This is the first line in my new file.
+This is the second line in my new file.
