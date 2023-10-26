@@ -18,8 +18,18 @@ def readFile(file: Path) -> List[Tuple[str, str, str]]:
     Raises:
         ValueError: if the reading csv has missing data (empty fields)  
     """
-    # TODO: Complete the function
-    return []  # erase this
+    data = []
+    with open(file) as csv_file:
+        csv_reader = csv.reader(csv_file, delimiter=",")
+        line_count = 0
+        for row in csv_reader:
+            if line_count == 0:
+                if row[0] != "City" or row[1] != "Team Name" or row[2] != "Sport":
+                    raise ValueError
+            else:
+                data.append(row[0] + row[1] + row[2])
+                line_count += 1
+    return tuple(data)
 
 
 def readAllFiles() -> List[SportClub]:

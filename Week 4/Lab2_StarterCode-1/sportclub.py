@@ -103,7 +103,7 @@ class SportClub:
         """
         return f"Name: {self.getCity()} {self.getName()}, Sport: {self.getSport()}, Count: {self.getCount()}"
 
-    def __eq__(self, o: object) -> bool:
+    def __eq__(self, otherObject: object) -> bool:
         """Check if another object is equal to self.
 
         Returns:
@@ -114,7 +114,7 @@ class SportClub:
         # check documentation ( https://docs.python.org/3/reference/datamodel.html#object.__eq__ )
         return False # erase this
 
-    def __lt__(self, o: object) -> bool:
+    def __lt__(self, otherObject: object) -> bool:
         """Check if self is less than another object.
 
         Returns:
