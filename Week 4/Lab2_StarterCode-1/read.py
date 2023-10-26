@@ -1,4 +1,5 @@
 from pathlib import Path
+import os
 import csv
 from sportclub import SportClub
 from typing import List, Tuple
@@ -42,5 +43,35 @@ def readAllFiles() -> List[SportClub]:
     Returns:
         a list of unique SportClub objects with their respective counts
     """
-    # TODO: Complete the function
+    bad_files = []
+    good_files = []
+    sports_list = []
+    current_dir = os.path.dirname(__file__)
+    p = Path(current_dir)
+    for file in p.glob('*.csv'):
+        try:
+            temp = readFile(file)
+        except ValueError:
+            bad_files.append(os.path.basename(file) + "\n")
+        except IndexError:
+            bad_files.append(os.path.basename(file)+ "\n")
+        else:
+            #TODO
+            pass
+    with open(os.path.join(current_dir, "error_log.txt"), "w") as txt_file:
+        txt_file.writelines(bad_files)
+
     return []  # erase this
+
+
+if __name__ == "__main__":
+   """ FOR TESTING PURPOSES
+
+   files = ["what\n", "is\n", "going\n", "on\n"]
+    current_dir = os.path.dirname(__file__)
+    p = Path(current_dir)
+    print(p)
+    for path in p.glob('*.py'):
+        print(os.path.basename(path))
+    with open(os.path.join(current_dir,"temp_file.txt"), "w") as txt_file:
+        txt_file.writelines(files)"""
