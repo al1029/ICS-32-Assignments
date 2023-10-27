@@ -24,15 +24,18 @@ def readFile(file: Path) -> List[Tuple[str, str, str]]:
         line_count = 0
         for row in csv_reader:
             if line_count == 0:
-                if row[0] != "City" or row[1] != "Team Name" or row[2] != "Sport" or len(row) > 3:
+                if row[0] != "City" or row[1] != "Team Name" or row[2] != "Sport" or len(row) != 3:
                     raise ValueError
                 else:
                     line_count += 1
             else:
-                temp_tuple = (row[0], row[1], row[2])
-                data.append(temp_tuple)
-                line_count += 1
-    return tuple(data)
+                if row[0] == "" or row[1] == "" or row[2] == "" or len(row) != 3:
+                    raise ValueError
+                else:
+                    temp_tuple = (row[0], row[1], row[2])
+                    data.append(temp_tuple)
+                    line_count += 1
+    return data
 
 
 def readAllFiles() -> List[SportClub]:
@@ -51,14 +54,13 @@ def readAllFiles() -> List[SportClub]:
     sports_list = []
     new_sports_list = []
 
-    #current_dir = os.path.dirname(__file__)
     p = Path(".")
     for file in p.glob('*.csv'):
         try:
             data = readFile(file)
             for i in data:
                 sports_list.append(SportClub(i[0], i[1], i[2]))
-            lines_read += file_lines(file)
+            lines_read += file_lines(file) - 1
             good_files += 1
         except ValueError:
             if str(file) != "survey_database.csv":
