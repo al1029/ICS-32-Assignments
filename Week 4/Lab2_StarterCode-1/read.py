@@ -1,5 +1,4 @@
 from pathlib import Path
-import os
 import csv
 from sportclub import SportClub
 from typing import List, Tuple
@@ -60,11 +59,14 @@ def readAllFiles() -> List[SportClub]:
             for i in data:
                 sports_list.append(SportClub(i[0], i[1], i[2]))
             lines_read += file_lines(file)
+            print(str(file))
             good_files += 1
         except ValueError:
-            bad_files.append(os.path.basename(file) + "\n")
+            if str(file) != "survey_database.csv":
+                bad_files.append(str(file) + "\n")
         except IndexError:
-            bad_files.append(os.path.basename(file)+ "\n")
+            if str(file) != "survey_database.csv":
+                bad_files.append(str(file) + "\n")
 
     #creates a new sports list with the number of times picked added
     index = 0
@@ -84,11 +86,11 @@ def readAllFiles() -> List[SportClub]:
             index += 1
 
     #creates an error log file to store bad files
-    with open(os.path.join(p, "error_log.txt"), "w") as txt_file:
+    with open("error_log.txt", "w") as txt_file:
         txt_file.writelines(bad_files)
 
     #creates a report text file to store the number of good files and lines read
-    with open(os.path.join(p, "report.txt"), "w") as txt_file:
+    with open("report.txt", "w") as txt_file:
         txt_file.writelines("Number of files read: " + str(good_files) + "\n" + "Number of lines read: " + str(lines_read) + "\n")
 
     return new_sports_list
