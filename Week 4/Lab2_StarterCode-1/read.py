@@ -59,7 +59,6 @@ def readAllFiles() -> List[SportClub]:
             for i in data:
                 sports_list.append(SportClub(i[0], i[1], i[2]))
             lines_read += file_lines(file)
-            print(str(file))
             good_files += 1
         except ValueError:
             if str(file) != "survey_database.csv":
