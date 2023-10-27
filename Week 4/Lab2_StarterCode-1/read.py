@@ -27,8 +27,11 @@ def readFile(file: Path) -> List[Tuple[str, str, str]]:
             if line_count == 0:
                 if row[0] != "City" or row[1] != "Team Name" or row[2] != "Sport":
                     raise ValueError
+                else:
+                    line_count += 1
             else:
-                data.append(row[0] + row[1] + row[2])
+                temp_tuple = (row[0], row[1], row[2])
+                data.append(temp_tuple)
                 line_count += 1
     return tuple(data)
 
@@ -44,34 +47,103 @@ def readAllFiles() -> List[SportClub]:
         a list of unique SportClub objects with their respective counts
     """
     bad_files = []
-    good_files = []
+    good_files = 0
+    lines_read = 0
     sports_list = []
+    new_sports_list = []
+
     current_dir = os.path.dirname(__file__)
     p = Path(current_dir)
     for file in p.glob('*.csv'):
         try:
-            temp = readFile(file)
+            data = readFile(file)
+            for i in data:
+                sports_list.append(SportClub(i[0], i[1], i[2]))
+            lines_read += file_lines(file)
+            good_files += 1
         except ValueError:
             bad_files.append(os.path.basename(file) + "\n")
         except IndexError:
             bad_files.append(os.path.basename(file)+ "\n")
+
+    #creates a new sports list with the number of times picked added
+    index = 0
+    while index < len(sports_list):
+        if index == 0:
+            sports_list[index].incrementCount()
+            new_sports_list.append(sports_list[index])
+            index += 1
+        elif any(x == sports_list[index] for x in new_sports_list):
+            for i in new_sports_list:
+                if i == sports_list[index]:
+                    i.incrementCount()
+            index += 1
         else:
-            #TODO
-            pass
+            sports_list[index].incrementCount()
+            new_sports_list.append(sports_list[index])
+            index += 1
+
+    #creates an error log file to store bad files
     with open(os.path.join(current_dir, "error_log.txt"), "w") as txt_file:
         txt_file.writelines(bad_files)
 
-    return []  # erase this
+    #creates a report text file to store the number of good files and lines read
+    with open(os.path.join(current_dir, "report.txt"), "w") as txt_file:
+        txt_file.writelines("Number of files read: " + str(good_files) + "\n" + "Number of lines read: " + str(lines_read) + "\n")
+
+    return new_sports_list
+
+
+def file_lines(file):
+#counts the number of lines in a file
+    with open(file) as f:
+        for i, _ in enumerate(f):
+            pass
+    return i + 1
 
 
 if __name__ == "__main__":
-   """ FOR TESTING PURPOSES
-
-   files = ["what\n", "is\n", "going\n", "on\n"]
+    """data = []
+    sports_list = []
+    new_sports_list = []
     current_dir = os.path.dirname(__file__)
-    p = Path(current_dir)
-    print(p)
-    for path in p.glob('*.py'):
-        print(os.path.basename(path))
-    with open(os.path.join(current_dir,"temp_file.txt"), "w") as txt_file:
-        txt_file.writelines(files)"""
+    p = Path(os.path.join(current_dir, "testcsvfile.csv"))
+    with open(p) as csv_file:
+        csv_reader = csv.reader(csv_file, delimiter=",")
+        line_count = 0
+        for row in csv_reader:
+            if line_count == 0:
+                if row[0] != "City" or row[1] != "Team Name" or row[2] != "Sport":
+                    raise ValueError
+                else:
+                    line_count += 1
+            else:
+                temp_tuple = (row[0], row[1], row[2])
+                data.append(temp_tuple)
+                line_count += 1
+    for i in data:
+        sports_list.append(SportClub(i[0], i[1], i[2]))
+
+    
+    index = 0
+    while index < len(sports_list):
+        if index == 0:
+            sports_list[index].incrementCount()
+            new_sports_list.append(sports_list[index])
+            index += 1
+        elif any(x == sports_list[index] for x in new_sports_list):
+            for i in new_sports_list:
+                if i == sports_list[index]:
+                    i.incrementCount()
+            index += 1
+        else:
+            sports_list[index].incrementCount()
+            new_sports_list.append(sports_list[index])
+            index += 1
+    print(str(index))
+    for i in new_sports_list:
+        print(i.__str__())"""
+
+
+
+        #[SportClub("Houston", "Rockets", "NBA", 80), SportClub("LA", "Warriors", "NBA", 130), SportClub("LA", "Lakers", "NBA", 130)] 

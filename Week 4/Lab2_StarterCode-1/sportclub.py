@@ -103,7 +103,7 @@ class SportClub:
         """
         return f"Name: {self.getCity()} {self.getName()}, Sport: {self.getSport()}, Count: {self.getCount()}"
 
-    def __eq__(self, otherObject: object) -> bool:
+    def __eq__(self, o: object) -> bool:
         """Check if another object is equal to self.
 
         Returns:
@@ -112,15 +112,14 @@ class SportClub:
         # TODO: Complete the function, which can be useful for ordering a List of Sportclub objects
         # hint: object o may not be of type SportClub.
         # check documentation ( https://docs.python.org/3/reference/datamodel.html#object.__eq__ )
-        return False # erase this
+        return self.getCity() == o.getCity() and self.getName() == o.getName() and self.getSport() == o.getSport()
 
-    def __lt__(self, otherObject: object) -> bool:
+    def __lt__(self, o: object) -> bool:
         """Check if self is less than another object.
 
         Returns:
             True if self is less than o, False otherwise
         """
-        # TODO: Complete the function, which can be useful for ordering a List of Sportclub objects
         # hint: object o may not be of type SportClub.
         # check documentation ( https://docs.python.org/3/reference/datamodel.html#object.__lt__ )
-        return True # erase this
+        return self.getCount() < o.getCount()
