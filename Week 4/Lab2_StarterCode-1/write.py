@@ -78,9 +78,3 @@ def outputSports(sorted_sports: Iterable[List[SportClub]]) -> None:
                     csv_writer.writerow(temp_list)
                     sport_number += 1
                     temp_list = []
-
-if __name__ == "__main__":
-    """sorted_list = [SportClub("Washington","Nationals","MLB",1), SportClub("Toronto","Raptors","NBA",3), SportClub("Kansas City","Chiefs","NFL",1), SportClub("Tampa Bay", "Lightning", "NHL",1)]
-    sorted_list.sort(key=lambda x:(-x.getCount(), x.getName()))
-    for sport in sorted_list:
-        print(sport.__str__())"""
