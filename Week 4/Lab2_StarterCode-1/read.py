@@ -25,7 +25,7 @@ def readFile(file: Path) -> List[Tuple[str, str, str]]:
         line_count = 0
         for row in csv_reader:
             if line_count == 0:
-                if row[0] != "City" or row[1] != "Team Name" or row[2] != "Sport":
+                if row[0] != "City" or row[1] != "Team Name" or row[2] != "Sport" or len(row) > 3:
                     raise ValueError
                 else:
                     line_count += 1
@@ -52,8 +52,8 @@ def readAllFiles() -> List[SportClub]:
     sports_list = []
     new_sports_list = []
 
-    current_dir = os.path.dirname(__file__)
-    p = Path(current_dir)
+    #current_dir = os.path.dirname(__file__)
+    p = Path(".")
     for file in p.glob('*.csv'):
         try:
             data = readFile(file)
@@ -84,11 +84,11 @@ def readAllFiles() -> List[SportClub]:
             index += 1
 
     #creates an error log file to store bad files
-    with open(os.path.join(current_dir, "error_log.txt"), "w") as txt_file:
+    with open(os.path.join(p, "error_log.txt"), "w") as txt_file:
         txt_file.writelines(bad_files)
 
     #creates a report text file to store the number of good files and lines read
-    with open(os.path.join(current_dir, "report.txt"), "w") as txt_file:
+    with open(os.path.join(p, "report.txt"), "w") as txt_file:
         txt_file.writelines("Number of files read: " + str(good_files) + "\n" + "Number of lines read: " + str(lines_read) + "\n")
 
     return new_sports_list

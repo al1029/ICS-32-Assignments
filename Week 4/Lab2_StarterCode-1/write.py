@@ -2,7 +2,7 @@ import csv
 from sportclub import SportClub
 from typing import List, Iterable
 from itertools import groupby
-import os
+
 
 def separateSports(all_clubs: List[SportClub]) -> Iterable[List[SportClub]]:
     """Separate a list of SportClubs into their own sports
@@ -63,8 +63,7 @@ def outputSports(sorted_sports: Iterable[List[SportClub]]) -> None:
         
 
 
-    current_dir = os.path.dirname(__file__)
-    with open(os.path.join(current_dir, "survey_database.csv"), "w", newline="") as f:
+    with open("survey_database.csv", "w", newline="") as f:
         csv_writer = csv.writer(f)
 
         csv_writer.writerow(["City", "Team Name", "Sport", "Number of Times Picked"])
@@ -81,7 +80,7 @@ def outputSports(sorted_sports: Iterable[List[SportClub]]) -> None:
                     temp_list = []
 
 if __name__ == "__main__":
-    sorted_list = [SportClub("Washington","Nationals","MLB",1), SportClub("Toronto","Raptors","NBA",3), SportClub("Kansas City","Chiefs","NFL",1), SportClub("Tampa Bay", "Lightning", "NHL",1)]
+    """sorted_list = [SportClub("Washington","Nationals","MLB",1), SportClub("Toronto","Raptors","NBA",3), SportClub("Kansas City","Chiefs","NFL",1), SportClub("Tampa Bay", "Lightning", "NHL",1)]
     sorted_list.sort(key=lambda x:(-x.getCount(), x.getName()))
     for sport in sorted_list:
-        print(sport.__str__())
+        print(sport.__str__())"""
