@@ -7,9 +7,10 @@ class BoardClass:
         wins (int): number of wins
         ties (int): number of ties
         losses (int): number of losses
+        num_games (int): number of games played
     """
 
-    def __init__(self, user_name: str = '', previous_user_name: str = '', wins: int = 0, ties: int = 0, losses: int = 0) -> None:
+    def __init__(self, user_name: str = '', previous_user_name: str = '') -> None:
         """Creates a BoardClass object
 
         Args:
@@ -18,30 +19,31 @@ class BoardClass:
             wins: number of wins
             ties: number of ties
             losses: number of losses
+            num_games: number of games played
         """
         
         self.user_name = user_name
         self.previous_user_name = previous_user_name
-        self.wins = wins
-        self.ties = ties
-        self.losses = losses
+        self.wins = 0
+        self.ties = 0
+        self.losses = 0
+        self.num_games = 0
 
-    def updateGamesPlayed():
+    def update_games_played(self) ->None:
+        self.num_games += 1
+
+    def reset_game_board():
         #TODO
         pass
 
-    def resetGameBoard():
+    def is_winner():
         #TODO
         pass
 
-    def isWinner():
+    def board_is_full():
         #TODO
         pass
 
-    def boardIsFull():
-        #TODO
-        pass
-
-    def printStats(self):
+    def print_stats(self):
         #TODO
         pass
