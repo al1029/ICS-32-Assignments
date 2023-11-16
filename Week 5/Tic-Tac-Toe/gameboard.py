@@ -43,28 +43,50 @@ class BoardClass:
         self.game_over = False
 
 
-    def update_games_played(self) ->None:
+    def update_games_played(self) -> None:
         self.num_games += 1
 
 
-    def reset_game_board(self) ->None:
+    def update_wins(self) -> None:
+        self.wins += 1
+
+
+    def update_ties(self) -> None:
+        self.ties += 1
+
+
+    def update_losses(self) -> None:
+        self.losses += 1
+
+
+    def update_turn(self, username: str) -> None:
+        self.last_player_turn = username
+
+
+    def reset_game_board(self) -> None:
         self.used_game_board = self.GAME_BOARD
         self.last_player_turn = ""
 
 
-    def place_play(self, piece:str, row: int, col: int):
-        self.used_game_board[row][col] = piece
+    def display_board(self) -> None:
+        for row in self.used_game_board:
+            print(" ".join(map(str,row)))
+        print("\n")
 
 
-    def valid_play(self, row: int, col: int) ->bool:
+    def place_symbol(self, piece:str, row: int, col: int) -> None:
+        self.used_game_board[row - 1][col - 1] = piece
+
+
+    def valid_play(self, row: int, col: int) -> bool:
         return self.used_game_board[row][col] == "_"
 
 
-    def is_game_over(self) ->bool:
+    def is_game_over(self) -> bool:
         return self.game_over
     
     
-    def check_rows(self) ->bool:
+    def check_rows(self) -> bool:
         """Checks all rows to determine if a player has won.
         
         Returns:
@@ -80,7 +102,7 @@ class BoardClass:
                 return True
 
 
-    def check_cols(self) ->bool:
+    def check_cols(self) -> bool:
         """Checks all columns to determine if a player has won.
         
         Returns:
@@ -97,7 +119,7 @@ class BoardClass:
         return False
 
 
-    def check_diagonals(self) ->bool:
+    def check_diagonals(self) -> bool:
         """Checks both diagonals to determine if a player has won.
         
         Returns:
@@ -121,16 +143,14 @@ class BoardClass:
             return False
 
 
-    def is_winner(self):
-        if self.check_diagonals or self.check_rows or self.check_cols:
-            self.wins += 1 
-            game_over = True
+    def is_winner(self) -> bool:
+        if self.check_diagonals or self.check_rows or self.check_cols: 
             return True
         return False
 
 
-    def board_is_full(self) ->bool:
-        """Check if the game board is full and updates the ties count.
+    def board_is_full(self) -> bool:
+        """Check if the game board is full.
         
         Returns:
             True if the game board has no more places to play
@@ -141,12 +161,10 @@ class BoardClass:
             for element in row:
                 if element == "_":
                     return False
-        self.ties += 1
-        self.game_over = True
         return True
 
 
-    def print_stats(self) ->None:
+    def print_stats(self) -> None:
         print(f"Last player to make a move: {self.last_player_turn}")
         print(f"# of games played: {self.num_games}")
         print(f"# of wins: {self.wins}")
