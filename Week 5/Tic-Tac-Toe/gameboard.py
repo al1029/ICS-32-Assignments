@@ -39,7 +39,7 @@ class BoardClass:
         self.ties = 0
         self.losses = 0
         self.num_games = 0
-        self.used_game_board = self.GAME_BOARD
+        self.used_game_board = [row[:] for row in self.GAME_BOARD]
         self.game_over = False
 
 
@@ -64,14 +64,13 @@ class BoardClass:
 
 
     def reset_game_board(self) -> None:
-        self.used_game_board = self.GAME_BOARD
-        self.last_player_turn = ""
+        self.used_game_board = [row[:] for row in self.GAME_BOARD]
 
 
     def display_board(self) -> None:
         for row in self.used_game_board:
             print(" ".join(map(str,row)))
-        print("\n")
+        print()
 
 
     def place_symbol(self, piece:str, row: int, col: int) -> None:
@@ -79,13 +78,9 @@ class BoardClass:
 
 
     def valid_play(self, row: int, col: int) -> bool:
-        return self.used_game_board[row][col] == "_"
+        return self.used_game_board[row - 1][col - 1] == "_"
 
 
-    def is_game_over(self) -> bool:
-        return self.game_over
-    
-    
     def check_rows(self) -> bool:
         """Checks all rows to determine if a player has won.
         
@@ -100,6 +95,7 @@ class BoardClass:
                 return True
             elif (board[row][0] == board[row][1] == board[row][2] == "O"):
                 return True
+        return False
 
 
     def check_cols(self) -> bool:
@@ -128,8 +124,6 @@ class BoardClass:
         """
 
         board = self.used_game_board
-        
-        # Check forward diagonals
         if all(board[i][i] == "X" for i in range(len(board))):
             return True
         elif all(board[i][i] == "O" for i in range(len(board))):
@@ -144,9 +138,10 @@ class BoardClass:
 
 
     def is_winner(self) -> bool:
-        if self.check_diagonals or self.check_rows or self.check_cols: 
+        if self.check_diagonals() or self.check_rows() or self.check_cols(): 
             return True
-        return False
+        else:
+            return False
 
 
     def board_is_full(self) -> bool:
