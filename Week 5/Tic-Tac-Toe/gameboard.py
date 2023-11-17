@@ -2,34 +2,24 @@ class BoardClass:
     """A gameboard class that handles information for tic tac toe.
 
     Attributes:
-        user_name (str): the user name given by the player
-        opponent (str): User name of the opposing player
-        last_player_turn (str): User name of the last player to have a turn
-        wins (int): number of wins
-        ties (int): number of ties
-        losses (int): number of losses
-        num_games (int): number of games played
-        used_game_board (list[list])
-        game_over (bool): Boolean to check if the game is over
+        user_name (str): the user name given by the player.
+        opponent (str): User name of the opposing player.
+        last_player_turn (str): User name of the last player to have a turn.
+        wins (int): number of wins.
+        ties (int): number of ties.
+        losses (int): number of losses.
+        num_games (int): number of games played.
+        GAME_BOARD (list[list]): game board used for resets.
+        used_game_board (list[list]): game borad used in game.
     """
 
-    # Variable Constants
-    GAME_BOARD = [["_", "_", "_"], 
-                  ["_", "_", "_"], 
-                  ["_", "_", "_"]]
 
-    def __init__(self, user_name: str = '', opponent: str = '') -> None:
-        """Creates a BoardClass object
+    def __init__(self, user_name: str = '', opponent: str = ''):
+        """Creates a BoardClass object.
 
         Args:
-            user_name: the user name given by the player
-            opponent: User name of the opposing player
-            last_player_turn: User name of the last player to have a turn
-            wins: number of wins
-            ties: number of ties
-            losses: number of losses
-            num_games: number of games played
-            game_over: Boolean to check if the game is over
+            user_name: the user name given by the player.
+            opponent: User name of the opposing player.
         """
         
         self.user_name = user_name
@@ -39,8 +29,10 @@ class BoardClass:
         self.ties = 0
         self.losses = 0
         self.num_games = 0
+        self.GAME_BOARD = [["_", "_", "_"], 
+                           ["_", "_", "_"], 
+                           ["_", "_", "_"]]
         self.used_game_board = [row[:] for row in self.GAME_BOARD]
-        self.game_over = False
 
 
     def update_games_played(self) -> None:
@@ -60,6 +52,11 @@ class BoardClass:
 
 
     def update_turn(self, username: str) -> None:
+        """Updates the variable for the last player place a symbol.
+        
+        Args:
+            username: the username of the player.
+        """
         self.last_player_turn = username
 
 
@@ -74,10 +71,27 @@ class BoardClass:
 
 
     def place_symbol(self, piece:str, row: int, col: int) -> None:
+        """Places the symbol of the player on the board.
+        
+        Args:
+            piece: the symbol of the player.
+            row: the desired row.
+            col: the desired column.
+        """
         self.used_game_board[row - 1][col - 1] = piece
 
 
     def valid_play(self, row: int, col: int) -> bool:
+        """Checks if the desired placement is a valid play.
+        
+        Args:
+            row: the desired row.
+            col: the desired column.
+
+        Returns:
+            True if the placement is a valid play.
+            False otherwise.
+        """
         return self.used_game_board[row - 1][col - 1] == "_"
 
 
@@ -85,8 +99,8 @@ class BoardClass:
         """Checks all rows to determine if a player has won.
         
         Returns:
-            True if a row has the same player element
-            False otherwise
+            True if a row has the same player element.
+            False otherwise.
         """
 
         board = self.used_game_board
@@ -102,8 +116,8 @@ class BoardClass:
         """Checks all columns to determine if a player has won.
         
         Returns:
-            True if a column has the same player element
-            False otherwise
+            True if a column has the same player element.
+            False otherwise.
         """
 
         board = self.used_game_board
@@ -119,8 +133,8 @@ class BoardClass:
         """Checks both diagonals to determine if a player has won.
         
         Returns:
-            True if a diagonal has the same player element
-            False otherwise
+            True if a diagonal has the same player element.
+            False otherwise.
         """
 
         board = self.used_game_board
@@ -138,28 +152,39 @@ class BoardClass:
 
 
     def is_winner(self) -> bool:
-        if self.check_diagonals() or self.check_rows() or self.check_cols(): 
+        """Checks if the player has won by checking rows, columns, and diagonals.
+        
+        Returns:
+            True if the player has won.
+            False otherwise.
+        """
+
+
+        if self.check_diagonals() or self.check_rows() or self.check_cols():
+            self.update_wins() 
             return True
         else:
             return False
 
 
     def board_is_full(self) -> bool:
-        """Check if the game board is full.
+        """Check if the game board is full and updates number of ties.
         
         Returns:
-            True if the game board has no more places to play
-            False otherwise
+            True if the game board has no more places to play.
+            False otherwise.
         """
 
         for row in self.used_game_board:
             for element in row:
                 if element == "_":
                     return False
+        self.update_ties()
         return True
 
 
     def print_stats(self) -> None:
+        print(f"Player name: {self.user_name}")
         print(f"Last player to make a move: {self.last_player_turn}")
         print(f"# of games played: {self.num_games}")
         print(f"# of wins: {self.wins}")

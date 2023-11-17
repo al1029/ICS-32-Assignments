@@ -12,7 +12,7 @@ import sys
 from gameboard import BoardClass
 
 def start_client() -> socket.socket:
-    """Creates a client socket and connects the the game server.
+    """Creates a client socket and connects to the game server.
 
     Prompts the user for the IP address and port of the host. Does 
     not finish running until both the server address is valid and 
@@ -22,7 +22,7 @@ def start_client() -> socket.socket:
     function runs again.
 
     Returns:
-        The client socket
+        The client socket.
     """
 
     # Create the client socket
@@ -50,7 +50,7 @@ def start_client() -> socket.socket:
                 elif try_again == "n":
                     # Safely terminates the program
                     print("Closing the program...")
-                    sys.exit(1)
+                    sys.exit(0)
                 print("Please provide a valid response")
         else:
             break
@@ -58,13 +58,60 @@ def start_client() -> socket.socket:
     return client_socket
 
 
-def start_game() -> None:
+def main() -> None:
+    """Runs the game and catches any connection interrupted errors.
+    
+    If the connection is not interrupted, the game runs as normal. If the connection
+    is interrupted at any point the user is prompted if they wan to reconnect. if they do,
+    they are prompted for the host information to reconnect, else the program is terminated.
+    """
 
-    # Creates the client socket
-    client_socket = start_client()
+    while True:
+        # Creates the client socket
+        client_socket = start_client()
 
-    # Prompts the user for an alphanumerical username
-    player_username, opponent_username = get_user_names(client_socket)
+        # Prompts the user for an alphanumerical username
+        player_username, opponent_username = get_user_names(client_socket)
+        
+        # Begins to play the game
+        try:
+            play_game(client_socket, player_username, opponent_username)
+        except ConnectionResetError:
+            print("The server was forcibly closed\n")
+            response = ""
+            while True:
+                response = input("Would you like to reconnect to the server? y/n: ").strip().lower()
+                if response == "y" or response == "n":
+                    break
+                else:
+                    print("Not a valid response")
+            if response == "y":
+                continue
+            else:
+                print("Closing the program")
+                break
+
+        # Breaks out of the loop when player decides to leave
+        client_socket.close()
+        break
+
+
+def play_game(socket: socket.socket, username: str, opponent: str) -> None:
+    """Runs the game loop and logic of the game.
+
+    Player 1 takes turns with Player 2 playing tic-tac-toe. Uses the BoardClass
+    to keep score and create the tic-tac-toe board.
+
+    Args:
+        socket: the client socket.
+        username: the username of the Player 1.
+        opponent: the username of Player 2.
+    """
+
+    # Gets the socket, username, and opponent username
+    client_socket = socket
+    player_username = username
+    opponent_username = opponent
 
     # Creates the gameboard
     board = BoardClass(player_username, opponent_username)
@@ -93,33 +140,31 @@ def start_game() -> None:
         client_socket.send(str(y_coords).encode())
 
         # Check the state of the game
-        state = check_state(board, True)
-        if state != "continue":
+        state = check_state(board)
+        if state == "continue":
+            client_socket.send(b"continue")
+        else:
             if state == "win":
+                client_socket.send(b"you lost")
                 print(f"!!!{player_username} wins !!!\n")
-                board.update_wins()
-                board.reset_game_board()
-            elif state == "lose":
-                print("!!! Player 2 wins !!!\n")
-                board.update_losses()
                 board.reset_game_board()
             elif state == "tie":
+                client_socket.send(b"tie")
                 print("!!! The game has ended in a tie !!!\n")
-                board.update_ties()
                 board.reset_game_board()
 
             # Check if the player wants to play again
-            response = play_again(client_socket)
+            response = get_response()
             client_socket.send(response.encode())
-            if response == "y":
+            if response == "Play Again":
                 board.update_turn("")
                 board.update_games_played()
                 continue
             else:
-                print("Leaving game...\n")
                 board.print_stats()
-                client_socket.close()
-                sys.exit(1)
+                print()
+                print("Leaving game...\n")
+                break
 
         # Wait for move from player 2
         print("...Awaiting move from Player 2...\n")
@@ -131,47 +176,53 @@ def start_game() -> None:
         board.display_board()
         print()
 
-        # Check the state of the game
-        state = check_state(board, False)
+        # Wait for game state from Player 2
+        state = client_socket.recv(1024).decode()
         if state != "continue":
-            if state == "win":
-                print(f"!!!{player_username} wins !!!\n")
-                board.reset_game_board()
-            elif state == "lose":
+            print("In the wrong place")
+            if state == "you lost":
                 print("!!! Player 2 wins !!!\n")
+                board.update_losses()
                 board.reset_game_board()
             elif state == "tie":
                 print("!!! The game has ended in a tie !!!\n")
+                board.update_ties()
                 board.reset_game_board()
 
-            # Check if the player wants to play again
-            response = play_again(client_socket)
-            client_socket.send(response.encode())
-            if response == "y":
-                board.update_turn("")
+            # check if player wants to play again
+            decision = play_again(state, client_socket, board)
+            if decision == "continue":
                 continue
             else:
-                print("Leaving game...\n")
-                board.print_stats()
-                client_socket.close()
-                sys.exit(1)
+                break
 
 
 def display_instructions() -> None:
-    paragraph = """The objective of the game is to align your symbol vertically,
-    horizontally, or diagonally on a 3x3 grid. The grid is accessed
-    using x and y coordinates. x is for the rows and y is for the columns.
-    For example, an input of x: 1 and y: 1 will place yor symbol in the
-    top left corner. The game is one by the first player to align their
-    symbol on the board. If the entire grid is filled without a player
-    achieving a winning alignment, the game is a draw. You are the 'X'
-    symbol! Good Luck.\n
-    """
+    paragraph = ("The objective of the game is to align your symbol vertically,\n" + 
+                 "horizontally, or diagonally on a 3x3 grid. The grid is accessed\n" + 
+                 "using x and y coordinates. x is for the rows and y is for the columns.\n" +
+                 "For example, an input of x: 1 and y: 1 will place your symbol in the \n" + 
+                 "top left corner. The game is won by the first player to align their\n" +
+                 "symbol on the board. If the entire grid is filled without a player\n" +
+                 "achieving a winning alignment, the game is a draw. You are the 'X'\n" +
+                 "symbol! Good Luck.\n")
     print("\n!!! Welcome to tic-tac-toe !!!\n")
     print(paragraph)
 
 
 def get_user_names(client_socket: socket.socket) -> tuple:
+    """Gets Player 1 username and Player 2 username.
+
+    Prompts the user for an alphanumerical username and retrieves
+    Player 2's username.
+    
+    Args:
+        client_socket: the client socket.
+    
+    Returns:
+        A tuple containing the usernames of Player 1 and 2.
+    """
+
     player_username = ""
     while True:
         player_username = input("Please enter an alphanumerical username: ").strip()
@@ -187,35 +238,62 @@ def get_user_names(client_socket: socket.socket) -> tuple:
     return player_username, opponent_username
 
 
-def play_again(client_socket: socket.socket) -> str:
+def get_response() -> str:
     while True:
         response = input("Play again? y/n: ").strip().lower()
         print()
-        if response == "y" or response == "n":
-            return response
+        if response == "y":
+            return "Play Again"
+        elif response == "n":
+            return "Fun Times"
         print("Not a valid response")
 
 
-def check_state(board: BoardClass, player_1: bool) -> str:
-    """Checks if the game is won, tied, or neither
+def play_again(socket: socket.socket, gameboard: BoardClass) -> str:
+    """Checks to see if the player wants to play again.
     
-    Parameters:
-        - board (BoardClass): An instance of the board class
-        - player_1 (bool): A boolean used to tell if Player 1 has won or lost
+    Handles the logic and updates the game board for if the user wants to 
+    play again or not.
+
+    Args:
+        socket: the client socket.
+        gameboard: the instance of the BoardClass.
+    
+    Returns:
+        'continue' if the user wants to play again.
+        'break' if the user does not want to play again.
+    """
+
+    board = gameboard
+    client_socket = socket
+
+    response = get_response()
+    client_socket.send(response.encode())
+    if response == "Play Again":
+        board.update_turn("")
+        board.update_games_played()
+        return "continue"
+    else:
+        board.print_stats()
+        print("Leaving game...\n")
+        return "break"
+
+
+def check_state(board: BoardClass) -> str:
+    """Checks if the game is won, tied, or neither.
+    
+    Args:
+        board: An instance of the board class
 
     Returns:
-        str:
-            - 'win' if player 1 has won
-            - 'lose' if player 1 has lost
-            - 'tie' if the game is tied
-            - 'continue' if the game is neither won, lost, nor tied
+        'win' if player has won.
+        'tie' if the game is tied.
+        'continue' if the game is neither won nor tied.
     """
-    # Check if someone has won
+
+    # Check if player has won
     if board.is_winner():
-        if player_1:
-            return "win"
-        else:
-            return "lose"
+        return "win"
     # Check if the game is tied
     elif board.board_is_full():
         return "tie"
@@ -225,11 +303,20 @@ def check_state(board: BoardClass, player_1: bool) -> str:
 
 
 def get_coords() -> tuple:
+    """Retrieves the coordinates from the player.
+    
+    Prompts the player to input an x and y coordinate within the bounds of the game board.
+    Does not stop running until the user inputs a valid coordinate.
+
+    Returns:
+        A tuple containing the desired x and y coordinates.
+    """
+
     x = 0
     y = 0
     while True:
-        x = input("Input x coord: ")
-        y = input("Input y coord: ")
+        x = input("Input row number: ")
+        y = input("Input column number: ")
         try:
             x = int(x)
             y = int(y)
@@ -244,4 +331,4 @@ def get_coords() -> tuple:
 
 
 if __name__ == "__main__":
-    start_game()
+    main()
