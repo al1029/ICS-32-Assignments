@@ -73,6 +73,7 @@ def start_game() -> None:
     display_instructions()
     
     # Plays the game until the game is over and the user decides to leave
+    board.update_games_played()
     while True:
         # Prompt user for coordinates and places symbol on game board
         print(f"Your ({player_username}) turn to make a move. Inputs should be integers in range 1-3 (inclusive).")
@@ -96,12 +97,15 @@ def start_game() -> None:
         if state != "continue":
             if state == "win":
                 print(f"!!!{player_username} wins !!!\n")
+                board.update_wins()
                 board.reset_game_board()
             elif state == "lose":
                 print("!!! Player 2 wins !!!\n")
+                board.update_losses()
                 board.reset_game_board()
             elif state == "tie":
                 print("!!! The game has ended in a tie !!!\n")
+                board.update_ties()
                 board.reset_game_board()
 
             # Check if the player wants to play again
@@ -109,6 +113,7 @@ def start_game() -> None:
             client_socket.send(response.encode())
             if response == "y":
                 board.update_turn("")
+                board.update_games_played()
                 continue
             else:
                 print("Leaving game...\n")

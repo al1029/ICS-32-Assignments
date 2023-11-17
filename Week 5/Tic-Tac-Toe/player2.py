@@ -24,6 +24,8 @@ def start_server() -> tuple:
             server_ip = input("Please input the desired server IP (127.0.0.1 recommended): ")
             server_port = input("Please input the desired port number between 0-65535 inclusive (5 digits): ")
             server_port = int(server_port)
+            if server_port < 0 or server_port >65535:
+                raise ValueError
             # Bind the socket to a specified address and port
             server_address = (server_ip, server_port)
             game_server.bind(server_address)
@@ -63,6 +65,7 @@ def start_game() -> None:
     display_instructions()
     
     # Plays the game until the game is over and Player 1 decides to leave
+    board.update_games_played()
     while True:
         # Wait for move from Player 1
         print(f"...Awaiting move from {player_1_username}...\n")
@@ -79,18 +82,22 @@ def start_game() -> None:
         if state != "continue":
             if state == "win":
                 print("!!! Player 2 wins !!!\n")
+                board.update_wins()
                 board.reset_game_board()
             elif state == "lose":
                 print(f"!!! {player_1_username} wins !!!\n")
+                board.update_losses()
                 board.reset_game_board()
             elif state == "tie":
                 print("!!! The game has ended in a tie !!!\n")
+                board.update_ties()
                 board.reset_game_board()
 
             # Wait to see if player 1 wants to play again
             response = client_socket.recv(1024).decode()
             if response == "y":
                 board.update_turn("")
+                board.update_games_played()
                 continue
             else:
                 print("Closing game server...")
@@ -107,7 +114,7 @@ def start_game() -> None:
             if board.valid_play(x_coords, y_coords):
                 break
             print("Not a valid play")
-        board.place_symbol("X", x_coords, y_coords)
+        board.place_symbol("O", x_coords, y_coords)
         board.update_turn("Player 2")
         board.display_board()
         print()
