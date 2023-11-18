@@ -69,14 +69,14 @@ def main() -> None:
     while True:
         # Creates the client socket
         client_socket = start_client()
-
-        # Prompts the user for an alphanumerical username
-        player_username, opponent_username = get_user_names(client_socket)
         
         # Begins to play the game
         try:
+            # Prompts the user for an alphanumerical username
+            player_username, opponent_username = get_user_names(client_socket)
+            # Runs game
             play_game(client_socket, player_username, opponent_username)
-        except ConnectionResetError:
+        except (ConnectionResetError, ConnectionAbortedError):
             print("The server was forcibly closed\n")
             response = ""
             while True:

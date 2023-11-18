@@ -67,7 +67,7 @@ def main() -> None:
     while True:
         try:
             play_game(game_server)
-        except ConnectionResetError:
+        except (ConnectionResetError, ConnectionAbortedError):
             print("Client forcibly disconnected\n")
             response = ""
             while True:
