@@ -190,7 +190,7 @@ def play_game(socket: socket.socket, username: str, opponent: str) -> None:
                 board.reset_game_board()
 
             # check if player wants to play again
-            decision = play_again(state, client_socket, board)
+            decision = play_again(client_socket, board)
             if decision == "continue":
                 continue
             else:
