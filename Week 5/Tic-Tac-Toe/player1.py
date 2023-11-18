@@ -238,6 +238,12 @@ def get_user_names(client_socket: socket.socket) -> tuple:
 
 
 def get_response() -> str:
+    """Asks the user if they would like to play again.
+    
+    Returns:
+        'Play Again' if the user wants to play again.
+        'Fun Times' if the user does not want to play again.
+    """
     while True:
         response = input("Play again? y/n: ").strip().lower()
         print()

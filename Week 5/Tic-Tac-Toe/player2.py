@@ -53,7 +53,7 @@ def main() -> None:
     """Runs the game and catches any connection interrupted errors.
     
     If the connection is not interrupted, the game runs as normal. If the 
-    connection is interrupted at any poin the user is prompted if they would 
+    connection is interrupted at any point the user is prompted if they would 
     like to wait for the client to reconnect. If they do, the server listens for 
     a connection, else the program is terminated.
     """
