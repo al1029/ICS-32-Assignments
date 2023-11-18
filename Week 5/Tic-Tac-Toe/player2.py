@@ -122,8 +122,8 @@ def play_game(server: socket.socket) -> None:
     while True:
         # Waits for move from Player 1 and places symbol on game board
         print(f"...Awaiting move from {player_1_username}...\n")
-        x_coords = int(client_socket.recv(1024).decode())
-        y_coords = int(client_socket.recv(1024).decode())
+        x_coords = int(client_socket.recv(1).decode())
+        y_coords = int(client_socket.recv(1).decode())
         board.place_symbol("X", x_coords, y_coords)
         board.update_turn(player_1_username)
         print(f"{player_1_username} just made a move")

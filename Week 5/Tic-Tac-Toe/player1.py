@@ -168,8 +168,8 @@ def play_game(socket: socket.socket, username: str, opponent: str) -> None:
 
         # Wait for move from player 2
         print("...Awaiting move from Player 2...\n")
-        x_coords = int(client_socket.recv(1024).decode())
-        y_coords = int(client_socket.recv(1024).decode())
+        x_coords = int(client_socket.recv(1).decode())
+        y_coords = int(client_socket.recv(1).decode())
         board.place_symbol("O", x_coords, y_coords)
         board.update_turn("Player 2")
         print("Player 2 just made a move")
