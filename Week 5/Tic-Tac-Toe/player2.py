@@ -1,14 +1,12 @@
 """A module for Player 2 that hosts tic-tac-toe on a socket server.
 
 Player 2 acts as the server for player 1 (client). The user is asked to provide the host 
-information so the module can acept incoming requests to start a new game. When a 
+information so the module can accept incoming requests to start a new game. When a 
 connection is established, player 2 and player 1 share information and begin to play 
 tic-tac-toe. When the game ends, player 2 will wait for player 1 to idicate if they want
 to play again. If player 1 wants to play again then player 2 will wait for player 1's
 first move. If player 1 does not want to play again then player 2 will print the 
-statistics and terminate the server. If at any point the client is forcibly disconnected, 
-the user is prompted if they want to listen for a connection. If they do, the program listens
-for a connection, else the program is terminated.
+statistics and terminate the server. 
 """
 
 import socket
@@ -241,7 +239,7 @@ def check_state(board: BoardClass) -> str:
     """Checks if the game is won, tied, or neither
     
     Parameters:
-        - board (BoardClass): An instance of the board class.
+        board (BoardClass): An instance of the board class.
 
     Returns:
         'win' if the player has won.
@@ -287,5 +285,6 @@ def get_coords() -> tuple:
     return x, y
 
 
+# Used for testing
 if __name__ == "__main__":
     main()

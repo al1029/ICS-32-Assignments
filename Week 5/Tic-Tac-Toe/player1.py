@@ -329,5 +329,6 @@ def get_coords() -> tuple:
     return x, y
 
 
+# Used for testing
 if __name__ == "__main__":
     main()
