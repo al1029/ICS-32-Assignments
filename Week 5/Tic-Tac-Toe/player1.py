@@ -179,7 +179,6 @@ def play_game(socket: socket.socket, username: str, opponent: str) -> None:
         # Wait for game state from Player 2
         state = client_socket.recv(1024).decode()
         if state != "continue":
-            print("In the wrong place")
             if state == "you lost":
                 print("!!! Player 2 wins !!!\n")
                 board.update_losses()
@@ -189,7 +188,7 @@ def play_game(socket: socket.socket, username: str, opponent: str) -> None:
                 board.update_ties()
                 board.reset_game_board()
 
-            # check if player wants to play again
+            # Check if player wants to play again
             decision = play_again(client_socket, board)
             if decision == "continue":
                 continue
