@@ -200,9 +200,9 @@ def display_instructions() -> None:
 
 
 def play_again(socket: socket.socket, gameboard: BoardClass, username: str) -> str:
-    """Checks player 1 wants to play again.
+    """Checks if Player 1 wants to play again.
     
-    Handles the logic and updates the game board for if player 1 wants to play or not. 
+    Handles the logic and updates the game board for if Player 1 wants to play or not. 
     If they do, the user is prompted so, else the user is prompted they do not want to 
     play again.
 
