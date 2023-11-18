@@ -195,7 +195,7 @@ def display_instructions() -> None:
                  "For example, an input of x: 1 and y: 1 will place your symbol in the \n" + 
                  "top left corner. The game is won by the first player to align their\n" +
                  "symbol on the board. If the entire grid is filled without a player\n" +
-                 "achieving a winning alignment, the game is a draw. You are the 'Y'\n" +
+                 "achieving a winning alignment, the game is a draw. You are the 'O'\n" +
                  "symbol! Good Luck.\n")
     print("\n!!! Welcome to tic-tac-toe !!!\n")
     print(paragraph)
