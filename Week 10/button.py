@@ -18,12 +18,17 @@ class Button():
         screen.blit(self.text, self.text_rect)
 
     def check_for_input(self, position):
-        if position[0] in range(self.rect.left, self.rect.right) and position [1] in range(self.rect.top, self.rect.bottom):
+        if position[0] in range(self.rect.left, self.rect.right) and position[1] in range(self.rect.top, self.rect.bottom):
             return True
         return False
     
-    def change_color(self, position):
-        if position[0] in range(self.rect.left, self.rect.right) and position [1] in range(self.rect.top, self.rect.bottom):
+    def change_color(self, position: tuple)-> None:
+        """Changes color to hovering color if mouse if over the button.
+
+        Args:
+            position: the position of the mouse
+        """
+        if position[0] in range(self.rect.left, self.rect.right) and position[1] in range(self.rect.top, self.rect.bottom):
             self.text = self.font.render(self.text_input, True, self.hovering_color)
         else:
             self.text = self.font.render(self.text_input, True, self.base_color)
