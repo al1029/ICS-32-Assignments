@@ -6,8 +6,8 @@ from input_box import InputBox
 pygame.init()
 
 # Initializing window
-SCREEN_HEIGHT = 700
-SCREEN_WIDTH = 700
+SCREEN_HEIGHT = 600
+SCREEN_WIDTH = 600
 SCREEN = pygame.display.set_mode((SCREEN_HEIGHT, SCREEN_WIDTH))
 pygame.display.set_caption("Tic-Tac-Toe")
 
@@ -22,7 +22,8 @@ def play():
     while True:
         PLAY_MOUSE_POS = pygame.mouse.get_pos()
 
-        SCREEN.fill("black")
+        SCREEN.fill("#4875b7")
+        draw_grid()
 
         PLAY_TEXT = get_font(45).render("This is the play screen", True, "White")
         PLAY_RECT = PLAY_TEXT.get_rect(center=(SCREEN_WIDTH//2, 260))
@@ -45,12 +46,20 @@ def play():
         PLAY_CLOCK.tick(30)
 
 
+def draw_grid():
+    block_size = SCREEN_HEIGHT//3
+    for x in range(0, SCREEN_WIDTH, block_size):
+        for y in range(0, SCREEN_HEIGHT, block_size):
+            line = pygame.Rect(x, y, block_size, block_size)
+            pygame.draw.rect(SCREEN, "#0700ff", line, 5)
+
+
 def user_info():
 
     #Creates the input boxes
-    PORT_INPUT_BOX = InputBox(x=370, y=300 - 25, width=140, height=50, font=get_font(40), text="")
-    IP_INPUT_BOX = InputBox(x=370, y=350 - 25, width=140, height=50, font=get_font(40), text="")
-    USERNAME_INPUT_BOX = InputBox(x=370, y =400 - 25, width=140, height=50, font=get_font(40), text="")
+    PORT_INPUT_BOX = InputBox(x=320, y=250 - 25, width=140, height=50, font=get_font(40), text="")
+    IP_INPUT_BOX = InputBox(x=320, y=300 - 25, width=140, height=50, font=get_font(40), text="")
+    USERNAME_INPUT_BOX = InputBox(x=320, y =350 - 25, width=140, height=50, font=get_font(40), text="")
     input_boxes = [PORT_INPUT_BOX, IP_INPUT_BOX, USERNAME_INPUT_BOX]
 
     #Create a clock object
@@ -63,18 +72,18 @@ def user_info():
 
         #Creates title text
         INFO_TITLE_TEXT = get_font(45).render("Please enter info", True, "White")
-        INFO_TITLE_RECT = INFO_TITLE_TEXT.get_rect(center=(SCREEN_WIDTH//2, 150))
+        INFO_TITLE_RECT = INFO_TITLE_TEXT.get_rect(center=(SCREEN_WIDTH//2, 100))
         SCREEN.blit(INFO_TITLE_TEXT, INFO_TITLE_RECT)
 
         #Creates display text 
         PORT_TEXT = get_font(45).render("Port", True, "White")
-        PORT_RECT = PORT_TEXT.get_rect(center=(SCREEN_WIDTH//2 - PORT_INPUT_BOX.width//2, 300))
+        PORT_RECT = PORT_TEXT.get_rect(center=(SCREEN_WIDTH//2 - PORT_INPUT_BOX.width//2, 250))
         SCREEN.blit(PORT_TEXT, PORT_RECT)
         IP_TEXT = get_font(45).render("IP", True, "White")
-        IP_RECT = IP_TEXT.get_rect(center=(SCREEN_WIDTH//2 - IP_INPUT_BOX.width//2, 350))
+        IP_RECT = IP_TEXT.get_rect(center=(SCREEN_WIDTH//2 - IP_INPUT_BOX.width//2, 300))
         SCREEN.blit(IP_TEXT, IP_RECT)
         USERNAME_TEXT = get_font(45).render("Username", True, "White")
-        USERNAME_RECT = USERNAME_TEXT.get_rect(center=(SCREEN_WIDTH//2 - USERNAME_INPUT_BOX.width//2, 400))
+        USERNAME_RECT = USERNAME_TEXT.get_rect(center=(SCREEN_WIDTH//2 - USERNAME_INPUT_BOX.width//2, 350))
         SCREEN.blit(USERNAME_TEXT, USERNAME_RECT)
         
         #Creates connect button
@@ -87,10 +96,21 @@ def user_info():
                 pygame.quit()
                 sys.exit()
             for box in input_boxes:
-                print("here")
                 box.handle_event(event)
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if INFO_CONNECT_BUTTON.check_for_input(INFO_MOUSE_POS):
+                    #TODO
+                    #Check if valid username first, then connect
+                    #If not a valid username, prompt as such
+                    #wait a second since it'll get deleted
+                    #if connection is successful:
+                    #   create rect that says "Connection successful"
+                    #   clock.wait for 1 second
+                    #   play()
+                    #else:
+                    #   create rect that says "Connection unsuccessful"
+                    #   clock.wait for 1 second since it'll get deleted
+                    #   continue running user_info() (probably just a pass)
                     play()
 
         for box in input_boxes:
@@ -112,11 +132,11 @@ def main_menu():
 
         MENU_MOUSE_POS = pygame.mouse.get_pos()
 
-        MENU_TEXT = get_font(120).render("Tic-Tac-Toe", True, "#b68f40")
+        MENU_TEXT = get_font(110).render("Tic-Tac-Toe", True, "#b68f40")
         MENU_RECT = MENU_TEXT.get_rect(center=(SCREEN_WIDTH//2, 100))
 
-        PLAY_BUTTON = Button(image=pygame.image.load("assets/Play Rect.png"), pos=(SCREEN_WIDTH//2, 400), text_input="PLAY", font=get_font(75), base_color="White", hovering_color="#b68f40")
-        QUIT_BUTTON = Button(image=pygame.image.load("assets/Play Rect.png"), pos=(SCREEN_WIDTH//2, 550), text_input="QUIT", font=get_font(75), base_color="White", hovering_color="#b68f40")
+        PLAY_BUTTON = Button(image=pygame.image.load("assets/Play Rect.png"), pos=(SCREEN_WIDTH//2, 300), text_input="PLAY", font=get_font(75), base_color="White", hovering_color="#b68f40")
+        QUIT_BUTTON = Button(image=pygame.image.load("assets/Play Rect.png"), pos=(SCREEN_WIDTH//2, 450), text_input="QUIT", font=get_font(75), base_color="White", hovering_color="#b68f40")
 
         SCREEN.blit(MENU_TEXT, MENU_RECT)
 
