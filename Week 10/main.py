@@ -1,21 +1,15 @@
 import pygame
 import sys
+import socket
 from button import Button
 from input_box import InputBox
-
-pygame.init()
-
-# Initializing window
-SCREEN_HEIGHT = 800
-SCREEN_WIDTH = 600
-SCREEN = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pygame.display.set_caption("Tic-Tac-Toe")
+from gameboard import BoardClass
 
 def get_font(size):
     return pygame.font.Font("assets/dpcomic.ttf", size)
 
 
-def play():
+def play(SCREEN, SCREEN_WIDTH, BOARD, CLIENT_SOCKET):
 
     #Create clock object
     PLAY_CLOCK = pygame.time.Clock()
@@ -26,6 +20,7 @@ def play():
     O_IMG = pygame.image.load("assets/O.png")
     EMPTY_CELL = pygame.image.load("assets/Empty_Cell.png")
     PLAYER_TEXT = get_font(50).render("", True, "White")
+
     player_turn = True
 
 
@@ -97,7 +92,7 @@ def play():
         PLAY_CLOCK.tick(30)
 
 
-def play_again():
+def play_again(SCREEN, SCREEN_WIDTH):
 
     PLAY_AGAIN_CLOCK = pygame.time.Clock()
 
@@ -130,17 +125,17 @@ def play_again():
                 if YES_BUTTON.check_for_input(PLAY_AGAIN_MOUSE_POS):
                     #send to host to play again
                     #TODO
-                    play()
+                    return "play_again"
                 if NO_BUTTON.check_for_input(PLAY_AGAIN_MOUSE_POS):
                     #send to host to not play again
                     #TODO
-                    stats()
+                    return "stats"
 
         pygame.display.update()
         PLAY_AGAIN_CLOCK.tick(30)
 
 
-def stats():
+def stats(SCREEN, SCREEN_WIDTH):
 
     STATS_CLOCK = pygame.time.Clock()
 
@@ -169,7 +164,7 @@ def stats():
         STATS_CLOCK.tick(30)
 
 
-def user_info():
+def user_info(SCREEN, SCREEN_WIDTH):
 
     #Creates the input boxes
     PORT_INPUT_BOX = InputBox(x=320, y=250 - 25, width=140, height=50, font=get_font(40), text="")
@@ -200,11 +195,22 @@ def user_info():
         USERNAME_TEXT = get_font(45).render("Username", True, "White")
         USERNAME_RECT = USERNAME_TEXT.get_rect(center=(SCREEN_WIDTH//2 - USERNAME_INPUT_BOX.width//2, 350))
         SCREEN.blit(USERNAME_TEXT, USERNAME_RECT)
+
+        #Creates error text
+        error = "Could not connect to server"
+        ERROR_TEXT = get_font(45).render(error, True, "Red")
+        ERROR_RECT = ERROR_TEXT.get_rect(center=(SCREEN_WIDTH//2, 150))
+        SCREEN.blit(ERROR_TEXT, ERROR_RECT)
         
         #Creates connect button
         INFO_CONNECT_BUTTON = Button(image=pygame.image.load("assets/Button.png"), pos=(SCREEN_WIDTH//2, 500), text_input="CONNECT", font=get_font(75), base_color="White", hovering_color="#b68f40")
         INFO_CONNECT_BUTTON.change_color(INFO_MOUSE_POS)
         INFO_CONNECT_BUTTON.update(SCREEN)
+
+        #Creates back button
+        INFO_BACK_BUTTON = Button(image=pygame.image.load("assets/Button.png"), pos=(SCREEN_WIDTH//2, 650), text_input="BACK", font=get_font(75), base_color="White", hovering_color="#b68f40")
+        INFO_BACK_BUTTON.change_color(INFO_MOUSE_POS)
+        INFO_BACK_BUTTON.update(SCREEN)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -226,7 +232,9 @@ def user_info():
                     #   create rect that says "Connection unsuccessful"
                     #   clock.wait for 1 second since it'll get deleted
                     #   continue running user_info() (probably just a pass)
-                    play()
+                    return "play"
+                if INFO_BACK_BUTTON.check_for_input(INFO_MOUSE_POS):
+                    return "main_menu"
 
         for box in input_boxes:
             box.update()
@@ -237,7 +245,7 @@ def user_info():
         INFO_CLOCK.tick(30)
 
 
-def main_menu():
+def main_menu(SCREEN, SCREEN_WIDTH):
 
     #Create clock object
     MENU_CLOCK = pygame.time.Clock()
@@ -265,7 +273,7 @@ def main_menu():
                 sys.exit()
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if PLAY_BUTTON.check_for_input(MENU_MOUSE_POS):
-                    play()
+                    return "user_info"
                 if QUIT_BUTTON.check_for_input(MENU_MOUSE_POS):
                     pygame.quit()
                     sys.exit()
@@ -274,5 +282,85 @@ def main_menu():
         MENU_CLOCK.tick(30)
 
 
+def start_client(ip, port) -> socket.socket:
+    """Creates a client socket and connects to the game server.
+
+    Attempts to connect to the server
+
+    Returns:
+        The client socket.
+    """
+
+    # Create the client socket
+    client_socket =  socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+    # Connect to the game server
+    if port < 0 or port > 65535:
+        raise ValueError
+    client_socket.connect(ip, port)
+    return client_socket
+    """while True:
+        try:
+            game_server = input("Please input the server IP: ")
+            server_port = input("Please input the server port: ")
+            server_port = int(server_port)
+            if server_port < 0 or server_port >65535:
+                raise ValueError
+            server_address = (game_server, server_port)
+            client_socket.connect(server_address)
+        except ValueError:
+            print("Not a valid port number")
+        except (ConnectionRefusedError, socket.gaierror):
+            print("Could not connect to server")
+            # Asks the user if they would like to try again
+            while True:
+                try_again = input("Try again? (y/n): ").strip().lower()
+                if try_again == "y":
+                    break
+                elif try_again == "n":
+                    # Safely terminates the program
+                    print("Closing the program...")
+                    sys.exit(0)
+                print("Please provide a valid response")
+        else:
+            break
+    print(f"Successfully connected to {server_address}")
+    return client_socket
+    """
+
+
+def run():
+
+    #Initializing window
+    pygame.init()
+    SCREEN_HEIGHT = 800
+    SCREEN_WIDTH = 600
+    SCREEN = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+    pygame.display.set_caption("Tic-Tac-Toe")
+
+    #Creating variable for socket
+    CLIENT_SOCKET = ""
+
+    #Initializing game board
+    BOARD = BoardClass("Placeholder", "Placeholder")
+
+    #Creating variable for screen state
+    screen_state = "main_menu"
+
+    #Running game loop
+    while True:
+        if screen_state == "main_menu":
+            screen_state = main_menu(SCREEN, SCREEN_WIDTH)
+        if screen_state == "user_info":
+            CLIENT_SOCKET, screen_state = user_info(SCREEN, SCREEN_WIDTH)
+        if screen_state == "play":
+            BOARD.update_games_played()
+            play(SCREEN, SCREEN_WIDTH, BOARD, CLIENT_SOCKET)
+        if screen_state == "play_again":
+            screen_state = play_again(SCREEN, SCREEN_WIDTH)
+        if screen_state == "stats":
+            stats(SCREEN, SCREEN_WIDTH)
+
+
 if __name__ == "__main__":
-    main_menu()
+    run()
