@@ -46,31 +46,4 @@ class InputBox:
         screen.blit(self.text_surface, (self.rect.x+5, self.rect.y+5))
         pygame.draw.rect(screen, self.color, self.rect, 5)
 
-
-def main():
-    clock = pygame.time.Clock()
-    input_box1 = InputBox(100, 100, 140, 32, pygame.font.Font("assets/dpcomic.ttf", 32))
-    input_box2 = InputBox(100, 300, 140, 32, pygame.font.Font("assets/dpcomic.ttf", 32))
-    input_boxes = [input_box1, input_box2]
-    done = False
-
-    while not done:
-        screen.fill("#4875b7")
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                done = True
-            for box in input_boxes:
-                box.handle_event(event)
-        
-        for box in input_boxes:
-            box.update()
-            box.draw(screen)
-
-        pygame.display.flip()
-        clock.tick(30)
-
-if __name__ == "__main__":
-    main()
-    pygame.quit()
-
         
