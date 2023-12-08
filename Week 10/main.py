@@ -22,8 +22,8 @@ def play(SCREEN, SCREEN_WIDTH, BOARD, CLIENT_SOCKET):
     EMPTY_CELL = pygame.image.load("assets/Empty_Cell.png")
     PLAYER_TEXT = get_font(50).render("", True, "White")
 
+    #Player 1 gets first turn
     player_turn = True
-
 
     #Set 3 x 3 rect grid
     GRID = [[Button(EMPTY_CELL, (100, 100), "", get_font(5), "Black", "White"), Button(EMPTY_CELL, (300, 100), "", get_font(5), "Black", "White"), Button(EMPTY_CELL, (500, 100), "", get_font(5), "Black", "White")], 
@@ -43,7 +43,19 @@ def play(SCREEN, SCREEN_WIDTH, BOARD, CLIENT_SOCKET):
         #   pygame.display.update()
         #   make the clock wait one second
         #   play_again()
-
+        if BOARD.is_winner():
+            winner = BOARD.find_winner()
+            if winner == "X":
+                BOARD.update_wins()
+                BOARD.reset_game_board()
+                return "play_again"
+            if winner == "O":
+                BOARD.update_losses()
+                BOARD.reset_game_board()
+                return "play_again"
+        if BOARD.board_is_full():
+            BOARD.reset_game_board()
+            return "play again"
 
         #Get mouse position
         PLAY_MOUSE_POS = pygame.mouse.get_pos()
@@ -59,10 +71,15 @@ def play(SCREEN, SCREEN_WIDTH, BOARD, CLIENT_SOCKET):
 
         if player_turn:
             PLAYER_TEXT = get_font(50).render("Your Turn", True, "White")
-        else:
-            PLAYER_TEXT = get_font(50).render("Player 2's Turn...", True, "White")
-        PLAYER_TEXT_RECT = PLAYER_TEXT.get_rect(center=(SCREEN_WIDTH//2, 700))
-        SCREEN.blit(PLAYER_TEXT, PLAYER_TEXT_RECT)
+
+        if not player_turn:
+            row = int(CLIENT_SOCKET.recv(1).decode())
+            col = int(CLIENT_SOCKET.recv(1).decode())
+            GRID[row][col].changeimage(O_IMG)
+            GRID[row][col].update(SCREEN)
+            BOARD.place_symbol_ui("O", row, col)
+            BOARD.update_turn(BOARD.get_opponent_username())
+            player_turn = not player_turn
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -73,27 +90,24 @@ def play(SCREEN, SCREEN_WIDTH, BOARD, CLIENT_SOCKET):
                     for row in range(len(GRID)):
                         for col in range(len(GRID)):
                             button = GRID[row][col]
-                            if button.check_for_input(PLAY_MOUSE_POS) and button.image is not X_IMG and button.image is not O_IMG :
+                            if button.check_for_input(PLAY_MOUSE_POS) and button.image is not X_IMG and button.image is not O_IMG:
                                 button.change_image(X_IMG)
                                 button.update(SCREEN)
-                                #TODO
-                                #Send player coordinates
+                                CLIENT_SOCKET.send(str(row).encode())
+                                CLIENT_SOCKET.send(str(col).encode())
+                                BOARD.update_turn(BOARD.get_username())
                                 player_turn = not player_turn
-            
-        if not player_turn:
-            pass
-            #TODO
-            """wait for player 2 to make a move and send their coordinates.
 
-            """
-        """Check if there is a winner, if there is then move to play again? screen
-        If there is no winner then continue"""
+        if not player_turn:
+            PLAYER_TEXT = get_font(50).render("Player 2's Turn...", True, "White")
+            PLAYER_TEXT_RECT = PLAYER_TEXT.get_rect(center=(SCREEN_WIDTH//2, 700))
+            SCREEN.blit(PLAYER_TEXT, PLAYER_TEXT_RECT)
 
         pygame.display.update()
         PLAY_CLOCK.tick(30)
 
 
-def play_again(SCREEN, SCREEN_WIDTH):
+def play_again(SCREEN, SCREEN_WIDTH, CLIENT_SOCKET):
 
     PLAY_AGAIN_CLOCK = pygame.time.Clock()
 
@@ -124,12 +138,11 @@ def play_again(SCREEN, SCREEN_WIDTH):
                 sys.exit()
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if YES_BUTTON.check_for_input(PLAY_AGAIN_MOUSE_POS):
-                    #send to host to play again
-                    #TODO
-                    return "play_again"
+                    CLIENT_SOCKET.send(b"Play Again")
+                    return "play"
                 if NO_BUTTON.check_for_input(PLAY_AGAIN_MOUSE_POS):
-                    #send to host to not play again
-                    #TODO
+                    CLIENT_SOCKET.send(b"Fun Times")
+                    CLIENT_SOCKET.close()
                     return "stats"
 
         pygame.display.update()
@@ -165,7 +178,7 @@ def stats(SCREEN, SCREEN_WIDTH):
         STATS_CLOCK.tick(30)
 
 
-def user_info(SCREEN, SCREEN_WIDTH):
+def user_info(SCREEN, SCREEN_WIDTH, BOARD):
 
     #Creates the input boxes
     PORT_INPUT_BOX = InputBox(x=320, y=250 - 25, width=140, height=50, font=get_font(40), text="")
@@ -182,10 +195,7 @@ def user_info(SCREEN, SCREEN_WIDTH):
     #Creates variable to store error
     error = ""
 
-    #Creates variable for while loop
-    not_connected = True
-
-    while not_connected:
+    while True:
         INFO_MOUSE_POS = pygame.mouse.get_pos()
 
         SCREEN.fill("#4875b7")
@@ -240,15 +250,20 @@ def user_info(SCREEN, SCREEN_WIDTH):
                             client_socket = start_client(ip, port)
                         except ValueError:
                             error = "Not a valid port"
-                        except (ConnectionRefusedError, socket.gaierror):
-                            print("did not connect")
+                        except (ConnectionRefusedError, socket.gaierror, OSError):
                             error = "Could not connect to server"
                         else:
-                            error = "Successfully connected"
-                            not_connected = False
+                            #Sets usernames
+                            BOARD.set_username(username)
+                            client_socket.send(username.encode())
+                            BOARD.set_opponent_username(client_socket.recv(1024).decode)
+
                             return ["play", client_socket]
                     else:
                         error = "Not an alphanumerical username"
+                        ERROR_TEXT = get_font(45).render(error, True, "Red")
+                        ERROR_RECT = ERROR_TEXT.get_rect(center=(SCREEN_WIDTH//2, 150))
+                        SCREEN.blit(ERROR_TEXT, ERROR_RECT)
                 if INFO_BACK_BUTTON.check_for_input(INFO_MOUSE_POS):
                     #Returns "" for the client socket since it was not created
                     return ["main_menu", ""]
@@ -260,10 +275,6 @@ def user_info(SCREEN, SCREEN_WIDTH):
         #Update the window
         pygame.display.update()
         INFO_CLOCK.tick(30)
-
-    #Return screen state and client socket
-    time.sleep(1)
-    return ["play", client_socket]
 
 
 def main_menu(SCREEN, SCREEN_WIDTH):
@@ -345,7 +356,7 @@ def run():
         if screen_state == "main_menu":
             screen_state = main_menu(SCREEN, SCREEN_WIDTH)
         if screen_state == "user_info":
-            screen_state, CLIENT_SOCKET = user_info(SCREEN, SCREEN_WIDTH)
+            screen_state, CLIENT_SOCKET = user_info(SCREEN, SCREEN_WIDTH, BOARD)
         if screen_state == "play":
             BOARD.update_games_played()
             play(SCREEN, SCREEN_WIDTH, BOARD, CLIENT_SOCKET)

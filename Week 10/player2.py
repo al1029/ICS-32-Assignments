@@ -1,290 +1,397 @@
-"""A module for Player 2 that hosts tic-tac-toe on a socket server.
-
-Player 2 acts as the server for player 1 (client). The user is asked to provide the host 
-information so the module can accept incoming requests to start a new game. When a 
-connection is established, player 2 and player 1 share information and begin to play 
-tic-tac-toe. When the game ends, player 2 will wait for player 1 to idicate if they want
-to play again. If player 1 wants to play again then player 2 will wait for player 1's
-first move. If player 1 does not want to play again then player 2 will print the 
-statistics and terminate the server. 
-"""
-
+import pygame
+import sys
 import socket
+import threading
+from button import Button
+from input_box import InputBox
 from gameboard import BoardClass
 
-def start_server() -> socket.socket:
-    """Creates a game server socket.
-    
-    Prompts the user for the IP address and port for the server. Does not
-    finish running until both the server address is valid. 
+def get_font(size):
+    return pygame.font.Font("assets/dpcomic.ttf", size)
 
-    Returns:
-        The game server socket.
-    """
 
-    # Creates the game server socket
-    game_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+def play(SCREEN, SCREEN_WIDTH, BOARD, CLIENT_SOCKET):
 
-    # Starts the game server
+    #Create clock object
+    PLAY_CLOCK = pygame.time.Clock()
+
+    #Get background image
+    PLAY_BACKGROUND = pygame.image.load("assets/Board.png")
+    X_IMG = pygame.image.load("assets/X.png")
+    O_IMG = pygame.image.load("assets/O.png")
+    EMPTY_CELL = pygame.image.load("assets/Empty_Cell.png")
+    PLAYER_TEXT = get_font(50).render("", True, "White")
+
+    #Player 1 gets first turn
+    player_turn = False
+
+    #Set 3 x 3 rect grid
+    GRID = [[Button(EMPTY_CELL, (100, 100), "", get_font(5), "Black", "White"), Button(EMPTY_CELL, (300, 100), "", get_font(5), "Black", "White"), Button(EMPTY_CELL, (500, 100), "", get_font(5), "Black", "White")], 
+            [Button(EMPTY_CELL, (100, 300), "", get_font(5), "Black", "White"), Button(EMPTY_CELL, (300, 300), "", get_font(5), "Black", "White"), Button(EMPTY_CELL, (500, 300), "", get_font(5), "Black", "White")],
+            [Button(EMPTY_CELL, (100, 500), "", get_font(5), "Black", "White"), Button(EMPTY_CELL, (300, 500), "", get_font(5), "Black", "White"), Button(EMPTY_CELL, (500, 500), "", get_font(5), "Black", "White")]]
+
     while True:
-        try:
-            server_ip = input("Please input the desired server IP (127.0.0.1 recommended): ")
-            server_port = input("Please input the desired port number between 0-65535 inclusive (5 digits): ")
-            server_port = int(server_port)
-            if server_port < 0 or server_port >65535:
-                raise ValueError
-            # Bind the socket to a specified address and port
-            server_address = (server_ip, server_port)
-            game_server.bind(server_address)
-        except ValueError:
-            print("Not a valid port number")
-        except socket.error:
-            print("There was an error starting the server with the provided address")
-        else:
-            if 0 <= server_port <= 65535:
-                break
-            else:
-                print("Port number not in range")
 
-    return game_server
-    
+        if BOARD.is_winner():
+            print("winner found")
+            winner = BOARD.find_winner()
+            print("winner is ", winner)
+            if winner == "O":
+                BOARD.update_wins()
+                BOARD.reset_game_board()
+                return "play_again"
+            if winner == "X":
+                BOARD.update_losses()
+                BOARD.reset_game_board()
+                print("moving to play again screen")
+                return "play_again"
+        if BOARD.board_is_full():
+            BOARD.reset_game_board()
+            return "play again"
 
-def main() -> None:
-    """Runs the game and catches any connection interrupted errors.
-    
-    If the connection is not interrupted, the game runs as normal. If the 
-    connection is interrupted at any point the user is prompted if they would 
-    like to wait for the client to reconnect. If they do, the server listens for 
-    a connection, else the program is terminated.
-    """
+        #Get mouse position
+        PLAY_MOUSE_POS = pygame.mouse.get_pos()
 
-    # Creates the game server socket
-    game_server = start_server()
+        #Set background
+        SCREEN.fill("#4875b7")
+        SCREEN.blit(PLAY_BACKGROUND, (0,0))
 
-    # Runs the game
-    while True:
-        try:
-            play_game(game_server)
-        except (ConnectionResetError, ConnectionAbortedError):
-            print("Client forcibly disconnected\n")
-            response = ""
-            while True:
-                response = input("Would you like to wait for the client to reconnect? y/n: ").strip().lower()
-                if response == "y" or response == "n":
-                    break
-                else:
-                    print("Not a valid response")
-            if response == "y":
-                continue
-            else:
-                print("Closing the program")
-                break
+        #Set rect buttons
+        for block in GRID:
+            for button in block:
+                button.update(SCREEN)
 
-        # Breaks out of the loop when player 1 decides to leave
-        game_server.close()
-        break
+        if player_turn:
+            PLAYER_TEXT = get_font(50).render("Your Turn", True, "White")
 
+        if not player_turn:
+            row = int(CLIENT_SOCKET.recv(1).decode())
+            col = int(CLIENT_SOCKET.recv(1).decode())
+            GRID[row][col].change_image(X_IMG)
+            GRID[row][col].update(SCREEN)
+            BOARD.place_symbol_ui("X", row, col)
+            BOARD.update_turn(BOARD.get_opponent_username())
+            player_turn = not player_turn
 
-def play_game(server: socket.socket) -> None:
-    """Runs the game loop and logic of the game.
-    
-    Player 2 takes turns with Player 1 playing tic-tac-toe. Player 1
-    always has the first move. Uses the BoardClass to keep score and create
-    the tic-tac-toe board.
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if player_turn:
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    for row in range(len(GRID)):
+                        for col in range(len(GRID)):
+                            button = GRID[row][col]
+                            if button.check_for_input(PLAY_MOUSE_POS) and button.image is not X_IMG and button.image is not O_IMG:
+                                button.change_image(O_IMG)
+                                button.update(SCREEN)
+                                CLIENT_SOCKET.send(str(row).encode())
+                                CLIENT_SOCKET.send(str(col).encode())
+                                BOARD.place_symbol_ui("O", row, col)
+                                BOARD.update_turn(BOARD.get_username())
+                                player_turn = not player_turn
 
-    Args:
-        server: the game server socket.
-    """
+        if not player_turn:
+            PLAYER_TEXT = get_font(50).render(f"{BOARD.get_opponent_username}'s turn...", True, "White")
+            PLAYER_TEXT_RECT = PLAYER_TEXT.get_rect(center=(SCREEN_WIDTH//2, 700))
+            SCREEN.blit(PLAYER_TEXT, PLAYER_TEXT_RECT)
 
-    # Gets the game server socket
-    game_server = server
-
-    # Wait for a connection
-    game_server.listen(1)
-    print("Waiting for a connection...")
-    client_socket, client_address = game_server.accept()
-    print(f"Accepted connection from {client_address}")
-
-    # Get Player 1 username and send Player 2 username
-    player_1_username = client_socket.recv(1024).decode()
-    client_socket.send(b"Player 2")
-
-    # Creates the gameboard
-    board = BoardClass("Player 2", player_1_username)
-
-    # Prints the game instructions
-    display_instructions()
-    
-    # Plays the game until the game is over and Player 1 decides to leave
-    board.update_games_played()
-    while True:
-        # Waits for move from Player 1 and places symbol on game board
-        print(f"...Awaiting move from {player_1_username}...\n")
-        x_coords = int(client_socket.recv(1).decode())
-        y_coords = int(client_socket.recv(1).decode())
-        board.place_symbol("X", x_coords, y_coords)
-        board.update_turn(player_1_username)
-        print(f"{player_1_username} just made a move")
-        board.display_board()
-        print()
-
-        # Wait for player 1 to give game state
-        state = client_socket.recv(1024).decode()
-        if state != "continue":
-            if state == "you lost":
-                print(f"!!! {player_1_username} wins !!!\n")
-                board.update_losses()
-                board.reset_game_board()
-            elif state == "tie":
-                print("!!! The game has ended in a tie !!!\n")
-                board.update_ties()
-                board.reset_game_board()
-
-            # Wait to see if player 1 wants to play again
-            response = play_again(client_socket, board, player_1_username)
-            if response == "continue":
-                continue
-            else:
-                break  
-
-        # Prompt user for coordinates and places symbol on game board
-        print(f"Your (Player 2) turn to make a move. Inputs should be integers in range 1-3 (inclusive).")
-        x_coords, y_coords = (0,0)
-        while True:
-            x_coords, y_coords = get_coords()
-            # Check if the play is valid
-            if board.valid_play(x_coords, y_coords):
-                break
-            print("Not a valid play")
-        board.place_symbol("O", x_coords, y_coords)
-        board.update_turn("Player 2")
-        board.display_board()
-        print()
-        # Send coords to player 1
-        client_socket.send(str(x_coords).encode())
-        client_socket.send(str(y_coords).encode())
-
-        # Check the state of the game
-        state = check_state(board)
-        if state == "continue":
-            client_socket.send(b"continue")
-        else:
-            if state == "win":
-                client_socket.send(b"you lost")
-                print("!!! Player 2 wins !!!\n")
-                board.reset_game_board()
-            elif state == "tie":
-                client_socket.send(b"tie")
-                print("!!! The game has ended in a tie !!!\n")
-                board.reset_game_board()
-
-            # Wait to see if player 1 wants to play again
-            response = play_again(client_socket, board, player_1_username)
-            if response == "continue":
-                continue
-            else:
-                break        
+        pygame.display.update()
+        PLAY_CLOCK.tick(30)
 
 
-def display_instructions() -> None:
-    paragraph = ("The objective of the game is to align your symbol vertically,\n" + 
-                 "horizontally, or diagonally on a 3x3 grid. The grid is accessed\n" + 
-                 "using x and y coordinates. x is for the rows and y is for the columns.\n" +
-                 "For example, an input of x: 1 and y: 1 will place your symbol in the \n" + 
-                 "top left corner. The game is won by the first player to align their\n" +
-                 "symbol on the board. If the entire grid is filled without a player\n" +
-                 "achieving a winning alignment, the game is a draw. You are the 'O'\n" +
-                 "symbol! Good Luck.\n")
-    print("\n!!! Welcome to tic-tac-toe !!!\n")
-    print(paragraph)
+def play_again(SCREEN, SCREEN_WIDTH, BOARD, CLIENT_SOCKET, SERVER_SOCKET):
+    print("made it to play again screen")
 
+    #Set background
+    SCREEN.fill("#4875b7")
 
-def play_again(socket: socket.socket, gameboard: BoardClass, username: str) -> str:
-    """Checks if Player 1 wants to play again.
-    
-    Handles the logic and updates the game board for if Player 1 wants to play or not. 
-    If they do, the user is prompted so, else the user is prompted they do not want to 
-    play again.
+    #Set title text
+    PLAY_AGAIN_TEXT = get_font(75).render(f"Waiting if {BOARD.get_opponent_username} wants to play again", True, "#b68f40")
+    PLAY_AGAIN_RECT = PLAY_AGAIN_TEXT.get_rect(center=(SCREEN_WIDTH//2, 100))
+    SCREEN.blit(PLAY_AGAIN_TEXT, PLAY_AGAIN_RECT)
 
-    Args:
-        socket: the client socket.
-        gameboard: the instance of the BoardClass.
-        username: the username of player 1.
+    pygame.display.update()
 
-    Returns:
-        'continue' if player 1 wants to play again.
-        'break' if the user does not want to play again.
-    """
-
-    client_socket = socket
-    board = gameboard
-    player_1_username = username
-
-    print(f"Waiting if {player_1_username} wants to play again...\n")
-    response = client_socket.recv(1024).decode()
+    response = CLIENT_SOCKET.recv(1024).decode()
     if response == "Play Again":
-        print(f"{player_1_username} wants to play again!\n")
-        board.update_turn("")
-        board.update_games_played()
-        return "continue"
+        return "play"
     else:
-        print(f"{player_1_username} does not want to play again\n")
-        board.print_stats()
-        print()
-        print("Closing game server...\n")
-        return "break"
+        SERVER_SOCKET.close()
+        return "stats"
 
 
-def check_state(board: BoardClass) -> str:
-    """Checks if the game is won, tied, or neither
-    
-    Parameters:
-        board (BoardClass): An instance of the board class.
+def stats(SCREEN, SCREEN_WIDTH):
 
-    Returns:
-        'win' if the player has won.
-        'tie' if the game is tied.
-        'continue' if the game is neither won nor tied.
-    """
-    # Check if someone has won
-    if board.is_winner():
-        return "win"
-    # Check if the game is tied
-    elif board.board_is_full():
-        return "tie"
-    # Continue the game
-    else:
-        return "continue"
+    STATS_CLOCK = pygame.time.Clock()
 
-
-def get_coords() -> tuple:
-    """Retrieves the coordinates from the player.
-    
-    Prompts the player to input an x and y coordinate within the bounds of the game board.
-    Does not stop running until the user inputs a valid coordinate.
-
-    Returns:
-        A tuple containing the desired x and y coordinates.
-    """
-
-    x = 0
-    y = 0
     while True:
-        x = input("Input row number: ")
-        y = input("Input column number: ")
-        try:
-            x = int(x)
-            y = int(y)
-        except ValueError:
-            print("Not valid coordinates")
-        else:
-            if 0 < x < 4 and 0 < y < 4:
-                break
-            else:
-                print("Not valid coordinates")
-    return x, y
+        SCREEN.fill("#4875b7")
+
+        STATS_MOUSE_POS = pygame.mouse.get_pos()
+
+        #TODO
+        #create text boxes for stats
+
+        QUIT_BUTTON = Button(image=pygame.image.load("assets/Button.png"), pos=(SCREEN_WIDTH//2, 450), text_input="QUIT", font=get_font(75), base_color="White", hovering_color="#b68f40")
+        QUIT_BUTTON.change_color(STATS_MOUSE_POS)
+        QUIT_BUTTON.update(SCREEN)
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if QUIT_BUTTON.check_for_input(STATS_MOUSE_POS):
+                    pygame.quit()
+                    sys.exit()
+
+        pygame.display.update()
+        STATS_CLOCK.tick(30)
 
 
-# Used for testing
+def user_info(SCREEN, SCREEN_WIDTH, BOARD):
+
+    #Creates the input boxes
+    PORT_INPUT_BOX = InputBox(x=320, y=250 - 25, width=140, height=50, font=get_font(40), text="")
+    IP_INPUT_BOX = InputBox(x=320, y=300 - 25, width=140, height=50, font=get_font(40), text="")
+    input_boxes = [PORT_INPUT_BOX, IP_INPUT_BOX]
+
+    #Create a clock object
+    INFO_CLOCK = pygame.time.Clock()
+
+    #Create variable to store socket
+    server_socket = ""
+
+    #Creates variable to store error
+    error = ""
+
+    while True:
+        INFO_MOUSE_POS = pygame.mouse.get_pos()
+
+        SCREEN.fill("#4875b7")
+
+        #Creates title text
+        INFO_TITLE_TEXT = get_font(80).render("Please enter info", True, "#b68f40")
+        INFO_TITLE_RECT = INFO_TITLE_TEXT.get_rect(center=(SCREEN_WIDTH//2, 100))
+        SCREEN.blit(INFO_TITLE_TEXT, INFO_TITLE_RECT)
+
+        #Creates display text 
+        PORT_TEXT = get_font(45).render("Port", True, "White")
+        PORT_RECT = PORT_TEXT.get_rect(center=(SCREEN_WIDTH//2 - PORT_INPUT_BOX.width//2, 250))
+        SCREEN.blit(PORT_TEXT, PORT_RECT)
+        IP_TEXT = get_font(45).render("IP", True, "White")
+        IP_RECT = IP_TEXT.get_rect(center=(SCREEN_WIDTH//2 - IP_INPUT_BOX.width//2, 300))
+        SCREEN.blit(IP_TEXT, IP_RECT)
+
+        #Creates error text
+        ERROR_TEXT = get_font(45).render(error, True, "Red")
+        ERROR_RECT = ERROR_TEXT.get_rect(center=(SCREEN_WIDTH//2, 150))
+        SCREEN.blit(ERROR_TEXT, ERROR_RECT)
+        
+        #Creates connect button
+        INFO_CONNECT_BUTTON = Button(image=pygame.image.load("assets/Button.png"), pos=(SCREEN_WIDTH//2, 500), text_input="CONNECT", font=get_font(75), base_color="White", hovering_color="#b68f40")
+        INFO_CONNECT_BUTTON.change_color(INFO_MOUSE_POS)
+        INFO_CONNECT_BUTTON.update(SCREEN)
+
+        #Creates back button
+        INFO_BACK_BUTTON = Button(image=pygame.image.load("assets/Button.png"), pos=(SCREEN_WIDTH//2, 650), text_input="BACK", font=get_font(75), base_color="White", hovering_color="#b68f40")
+        INFO_BACK_BUTTON.change_color(INFO_MOUSE_POS)
+        INFO_BACK_BUTTON.update(SCREEN)
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            for box in input_boxes:
+                box.handle_event(event)
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if INFO_CONNECT_BUTTON.check_for_input(INFO_MOUSE_POS):
+                    #Attempt to connect to server using info from input boxes
+                    ip = IP_INPUT_BOX.get_text()
+                    port = PORT_INPUT_BOX.get_text()
+                    #Attempts to connect to server
+                    try:
+                        server_socket = start_server(ip, port)
+                    except ValueError:
+                        error = "Not a valid port"
+                    except socket.error:
+                        error = "Could not start server"
+                    else:
+                        #Sets username
+                        BOARD.set_username("Player 2")
+
+                        return ["waiting_for_connection", server_socket]
+                if INFO_BACK_BUTTON.check_for_input(INFO_MOUSE_POS):
+                    #Returns "" for the client socket since it was not created
+                    return ["main_menu", ""]
+
+        for box in input_boxes:
+            box.update()
+            box.draw(SCREEN)
+
+        #Update the window
+        pygame.display.update()
+        INFO_CLOCK.tick(30)
+
+
+def main_menu(SCREEN, SCREEN_WIDTH):
+
+    #Create clock object
+    MENU_CLOCK = pygame.time.Clock()
+
+    while True:
+        SCREEN.fill("#4875b7")
+
+        MENU_MOUSE_POS = pygame.mouse.get_pos()
+
+        MENU_TEXT = get_font(110).render("Tic-Tac-Toe", True, "#b68f40")
+        MENU_RECT = MENU_TEXT.get_rect(center=(SCREEN_WIDTH//2, 100))
+
+        PLAY_BUTTON = Button(image=pygame.image.load("assets/Button.png"), pos=(SCREEN_WIDTH//2, 300), text_input="PLAY", font=get_font(75), base_color="White", hovering_color="#b68f40")
+        QUIT_BUTTON = Button(image=pygame.image.load("assets/Button.png"), pos=(SCREEN_WIDTH//2, 450), text_input="QUIT", font=get_font(75), base_color="White", hovering_color="#b68f40")
+
+        SCREEN.blit(MENU_TEXT, MENU_RECT)
+
+        for button in [PLAY_BUTTON, QUIT_BUTTON]:
+            button.change_color(MENU_MOUSE_POS)
+            button.update(SCREEN)
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if PLAY_BUTTON.check_for_input(MENU_MOUSE_POS):
+                    return "user_info"
+                if QUIT_BUTTON.check_for_input(MENU_MOUSE_POS):
+                    pygame.quit()
+                    sys.exit()
+
+        pygame.display.update()
+        MENU_CLOCK.tick(30)
+
+
+def wait_screen(SCREEN, SCREEN_WIDTH, BOARD, SERVER_SOCKET):
+
+    WAIT_CLOCK = pygame.time.Clock()
+    global connection_established 
+    connection_established = False
+    threading.Thread(target=waiting_for_connection, args=(BOARD, SERVER_SOCKET)).start()
+    while connection_established == False:
+        SCREEN.fill("#4875b7")
+        CONNECTION_TEXT = get_font(50).render("Waiting for connection...", True, "#b68f40")
+        CONNECTION_RECT = CONNECTION_TEXT.get_rect(center=(SCREEN_WIDTH//2, 100))
+        SCREEN.blit(CONNECTION_TEXT, CONNECTION_RECT)
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+                
+        pygame.display.update()
+        WAIT_CLOCK.tick(30)
+        print("running")
+
+    return "play"
+
+
+def waiting_for_connection(BOARD, SERVER_SOCKET):
+    print("waiting for connection")
+    global connection_established, CLIENT_SOCKET
+    SERVER_SOCKET.listen(1)
+    CLIENT_SOCKET, addr = SERVER_SOCKET.accept()
+    print("accepted a connection")
+    opponent_username = CLIENT_SOCKET.recv(1024).decode()
+    print(opponent_username)
+    BOARD.set_opponent_username(opponent_username)
+    CLIENT_SOCKET.send(b"Player 2")
+    connection_established = True
+
+    return True
+
+
+"""def waiting_for_connection(SCREEN, SCREEN_WIDTH, BOARD, SERVER_SOCKET):
+
+    SCREEN.fill("#4875b7")
+
+    CONNECTION_TEXT = get_font(50).render("Waiting for connection...", True, "#b68f40")
+    CONNECTION_RECT = CONNECTION_TEXT.get_rect(center=(SCREEN_WIDTH//2, 100))
+    SCREEN.blit(CONNECTION_TEXT, CONNECTION_RECT)
+
+    pygame.display.update()
+
+    #Wait for a connection
+    SERVER_SOCKET.listen(1)
+    client_socket, client_address = SERVER_SOCKET.accept()
+    #Set opponent username
+    BOARD.set_opponent_username(client_socket.recv(1024).decode())
+    print(BOARD.get_opponent_username)
+    client_socket.send(b"Player 2")
+    print()
+
+    return ["play", client_socket]
+"""
+
+def start_server(ip, port) -> socket.socket:
+    """Creates a server.
+
+    Returns:
+        The server socket.
+    """
+
+    # Create the server socket
+    server_socket =  socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+    # Connect to the game server
+    if int(port) < 0 or int(port) > 65535:
+        raise ValueError
+    server_socket.bind((ip, int(port)))
+    return server_socket
+
+
+def run():
+
+    #Initializing window
+    pygame.init()
+    SCREEN_HEIGHT = 800
+    SCREEN_WIDTH = 600
+    SCREEN = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+    pygame.display.set_caption("Tic-Tac-Toe")
+
+    #Creating variable for socket
+    SERVER_SOCKET = ""
+    global CLIENT_SOCKET 
+    CLIENT_SOCKET = ""
+
+    #Initializing game board
+    BOARD = BoardClass("Placeholder", "Placeholder")
+
+    #Creating variable for screen state
+    screen_state = "main_menu"
+
+    #Running game loop
+    while True:
+        if screen_state == "main_menu":
+            screen_state = main_menu(SCREEN, SCREEN_WIDTH)
+
+        if screen_state == "user_info":
+            screen_state, SERVER_SOCKET = user_info(SCREEN, SCREEN_WIDTH, BOARD)
+
+        if screen_state == "waiting_for_connection":
+            #screen_state, CLIENT_SOCKET = waiting_for_connection(SCREEN, SCREEN_WIDTH, BOARD, SERVER_SOCKET)
+            screen_state = wait_screen(SCREEN, SCREEN_WIDTH, BOARD, SERVER_SOCKET)
+
+        if screen_state == "play":
+            BOARD.update_games_played()
+            screen_state = play(SCREEN, SCREEN_WIDTH, BOARD, CLIENT_SOCKET)
+
+        if screen_state == "play_again":
+            screen_state = play_again(SCREEN, SCREEN_WIDTH, CLIENT_SOCKET)
+
+        if screen_state == "stats":
+            stats(SCREEN, SCREEN_WIDTH)
+
+
 if __name__ == "__main__":
-    main()
+    run()

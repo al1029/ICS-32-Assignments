@@ -60,6 +60,22 @@ class BoardClass:
         self.last_player_turn = username
 
 
+    def set_username(self, username):
+        self.user_name = username
+
+
+    def set_opponent_username(self, opponent_username):
+        self.opponent = opponent_username
+
+
+    def get_username(self):
+        return self.user_name
+
+
+    def get_opponent_username(self):
+        return self.opponent
+
+
     def reset_game_board(self) -> None:
         self.used_game_board = [row[:] for row in self.GAME_BOARD]
 
@@ -79,6 +95,19 @@ class BoardClass:
             col: the desired column.
         """
         self.used_game_board[row - 1][col - 1] = piece
+
+
+    def place_symbol_ui(self, piece: str, row: int, col: int) -> None:
+        """Places the symbol of the player on the board.
+
+        Copy of place_symbol for personal folder management.
+            
+            Args:
+                piece: the symbol of the player.
+                row: the desired row.
+                col: the desired column.
+            """
+        self.used_game_board[row][col] = piece
 
 
     def valid_play(self, row: int, col: int) -> bool:
@@ -165,6 +194,53 @@ class BoardClass:
             return True
         else:
             return False
+
+
+    def is_winner_ui(self) -> bool:
+        """Checks if the player has won by checking rows, columns, and diagonals.
+
+        Copy of is_winner for personal folder management.
+        
+        Returns:
+            True if the player has won.
+            False otherwise.
+        """
+
+
+        if self.check_diagonals() or self.check_rows() or self.check_cols():
+            return True
+        else:
+            return False
+
+
+    def find_winner(self) ->str:
+        """Checks which player has won.
+        
+        Returns:
+            Symbol of player who won.
+        """
+        board = self.used_game_board
+        for row in range(0,3):
+            if (board[row][0] == board[row][1] == board[row][2] == "X"):
+                return "X"
+            elif (board[row][0] == board[row][1] == board[row][2] == "O"):
+                return "O"
+            
+        for col in range(0,3):
+            if (board[0][col] == board[1][col] == board[2][col] == "X"):
+                return "X"
+            elif (board[0][col] == board[1][col] == board[2][col] == "O"):
+                return "O"
+            
+        if all(board[i][i] == "X" for i in range(len(board))):
+            return "X"
+        elif all(board[i][i] == "O" for i in range(len(board))):
+            return "O"
+        # Check backward diagonals
+        elif all(board[i][-i - 1] == "X" for i in range(len(board))):
+            return "X"
+        elif all(board[i][-i - 1] == "O" for i in range(len(board))):
+            return "O"
 
 
     def board_is_full(self) -> bool:
