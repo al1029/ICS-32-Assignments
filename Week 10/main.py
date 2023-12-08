@@ -1,6 +1,7 @@
 import pygame
 import sys
 import socket
+import time
 from button import Button
 from input_box import InputBox
 from gameboard import BoardClass
@@ -175,7 +176,16 @@ def user_info(SCREEN, SCREEN_WIDTH):
     #Create a clock object
     INFO_CLOCK = pygame.time.Clock()
 
-    while True:
+    #Create variable to store socket
+    client_socket = ""
+
+    #Creates variable to store error
+    error = ""
+
+    #Creates variable for while loop
+    not_connected = True
+
+    while not_connected:
         INFO_MOUSE_POS = pygame.mouse.get_pos()
 
         SCREEN.fill("#4875b7")
@@ -197,7 +207,6 @@ def user_info(SCREEN, SCREEN_WIDTH):
         SCREEN.blit(USERNAME_TEXT, USERNAME_RECT)
 
         #Creates error text
-        error = "Could not connect to server"
         ERROR_TEXT = get_font(45).render(error, True, "Red")
         ERROR_RECT = ERROR_TEXT.get_rect(center=(SCREEN_WIDTH//2, 150))
         SCREEN.blit(ERROR_TEXT, ERROR_RECT)
@@ -220,21 +229,29 @@ def user_info(SCREEN, SCREEN_WIDTH):
                 box.handle_event(event)
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if INFO_CONNECT_BUTTON.check_for_input(INFO_MOUSE_POS):
-                    #TODO
-                    #Check if valid username first, then connect
-                    #If not a valid username, prompt as such
-                    #wait a second since it'll get deleted
-                    #if connection is successful:
-                    #   create rect that says "Connection successful"
-                    #   clock.wait for 1 second
-                    #   play()
-                    #else:
-                    #   create rect that says "Connection unsuccessful"
-                    #   clock.wait for 1 second since it'll get deleted
-                    #   continue running user_info() (probably just a pass)
-                    return "play"
+                    #Attempt to connect to server using info from input boxes
+                    username = USERNAME_INPUT_BOX.get_text()
+                    ip = IP_INPUT_BOX.get_text()
+                    port = PORT_INPUT_BOX.get_text()
+                    #Checks if username is alphanumerical
+                    if username.isalnum():
+                        #Attempts to connect to server
+                        try:
+                            client_socket = start_client(ip, port)
+                        except ValueError:
+                            error = "Not a valid port"
+                        except (ConnectionRefusedError, socket.gaierror):
+                            print("did not connect")
+                            error = "Could not connect to server"
+                        else:
+                            error = "Successfully connected"
+                            not_connected = False
+                            return ["play", client_socket]
+                    else:
+                        error = "Not an alphanumerical username"
                 if INFO_BACK_BUTTON.check_for_input(INFO_MOUSE_POS):
-                    return "main_menu"
+                    #Returns "" for the client socket since it was not created
+                    return ["main_menu", ""]
 
         for box in input_boxes:
             box.update()
@@ -243,6 +260,10 @@ def user_info(SCREEN, SCREEN_WIDTH):
         #Update the window
         pygame.display.update()
         INFO_CLOCK.tick(30)
+
+    #Return screen state and client socket
+    time.sleep(1)
+    return ["play", client_socket]
 
 
 def main_menu(SCREEN, SCREEN_WIDTH):
@@ -295,38 +316,10 @@ def start_client(ip, port) -> socket.socket:
     client_socket =  socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     # Connect to the game server
-    if port < 0 or port > 65535:
+    if int(port) < 0 or int(port) > 65535:
         raise ValueError
-    client_socket.connect(ip, port)
+    client_socket.connect((ip, int(port)))
     return client_socket
-    """while True:
-        try:
-            game_server = input("Please input the server IP: ")
-            server_port = input("Please input the server port: ")
-            server_port = int(server_port)
-            if server_port < 0 or server_port >65535:
-                raise ValueError
-            server_address = (game_server, server_port)
-            client_socket.connect(server_address)
-        except ValueError:
-            print("Not a valid port number")
-        except (ConnectionRefusedError, socket.gaierror):
-            print("Could not connect to server")
-            # Asks the user if they would like to try again
-            while True:
-                try_again = input("Try again? (y/n): ").strip().lower()
-                if try_again == "y":
-                    break
-                elif try_again == "n":
-                    # Safely terminates the program
-                    print("Closing the program...")
-                    sys.exit(0)
-                print("Please provide a valid response")
-        else:
-            break
-    print(f"Successfully connected to {server_address}")
-    return client_socket
-    """
 
 
 def run():
@@ -352,7 +345,7 @@ def run():
         if screen_state == "main_menu":
             screen_state = main_menu(SCREEN, SCREEN_WIDTH)
         if screen_state == "user_info":
-            CLIENT_SOCKET, screen_state = user_info(SCREEN, SCREEN_WIDTH)
+            screen_state, CLIENT_SOCKET = user_info(SCREEN, SCREEN_WIDTH)
         if screen_state == "play":
             BOARD.update_games_played()
             play(SCREEN, SCREEN_WIDTH, BOARD, CLIENT_SOCKET)
