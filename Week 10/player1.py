@@ -182,17 +182,40 @@ def play_again(SCREEN, SCREEN_WIDTH, CLIENT_SOCKET):
         PLAY_AGAIN_CLOCK.tick(30)
 
 
-def stats(SCREEN, SCREEN_WIDTH):
+def stats(SCREEN, SCREEN_WIDTH, BOARD):
 
     STATS_CLOCK = pygame.time.Clock()
+
+    username, opponent, num_games, num_wins, num_losses, num_ties = BOARD.compute_stats()
 
     while True:
         SCREEN.fill("#4875b7")
 
         STATS_MOUSE_POS = pygame.mouse.get_pos()
 
-        #TODO
-        #create text boxes for stats
+        USERNAME_TEXT = get_font(60).render(f"Username: {username}", True, "#b68f40")
+        USERNAME_RECT = USERNAME_TEXT.get_rect(center=(SCREEN_WIDTH//2, 100))
+        SCREEN.blit(USERNAME_TEXT, USERNAME_RECT)
+
+        OPPONENT_TEXT = get_font(60).render(f"Opponent: {opponent}", True, "#b68f40")
+        OPPONENT_RECT = OPPONENT_TEXT.get_rect(center=(SCREEN_WIDTH//2, 150))
+        SCREEN.blit(OPPONENT_TEXT, OPPONENT_RECT)
+
+        GAMES_TEXT = get_font(60).render(f"Games: {num_games}", True, "#b68f40")
+        GAMES_RECT = GAMES_TEXT.get_rect(center=(SCREEN_WIDTH//2, 200))
+        SCREEN.blit(GAMES_TEXT, GAMES_RECT)
+
+        WINS_TEXT = get_font(60).render(f"Wins: {num_wins}", True, "#b68f40")
+        WINS_RECT = WINS_TEXT.get_rect(center=(SCREEN_WIDTH//2, 250))
+        SCREEN.blit(WINS_TEXT, WINS_RECT)
+
+        LOSSES_TEXT = get_font(60).render(f"Losses: {num_losses}", True, "#b68f40")
+        LOSSES_RECT = LOSSES_TEXT.get_rect(center=(SCREEN_WIDTH//2, 300))
+        SCREEN.blit(LOSSES_TEXT, LOSSES_RECT)
+
+        TIES_TEXT = get_font(60).render(f"Ties: {num_ties}", True, "#b68f40")
+        TIES_RECT = TIES_TEXT.get_rect(center=(SCREEN_WIDTH//2, 350))
+        SCREEN.blit(TIES_TEXT, TIES_RECT)
 
         QUIT_BUTTON = Button(image=pygame.image.load("assets/Button.png"), pos=(SCREEN_WIDTH//2, 450), text_input="QUIT", font=get_font(75), base_color="White", hovering_color="#b68f40")
         QUIT_BUTTON.change_color(STATS_MOUSE_POS)
@@ -402,7 +425,7 @@ def run():
             screen_state = play_again(SCREEN, SCREEN_WIDTH, CLIENT_SOCKET)
 
         if screen_state == "stats":
-            stats(SCREEN, SCREEN_WIDTH)
+            stats(SCREEN, SCREEN_WIDTH, BOARD)
 
 
 if __name__ == "__main__":

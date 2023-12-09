@@ -190,7 +190,7 @@ class BoardClass:
 
 
         if self.check_diagonals() or self.check_rows() or self.check_cols():
-            self.update_wins() 
+            #self.update_wins() 
             return True
         else:
             return False
