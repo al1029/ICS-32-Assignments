@@ -1,8 +1,27 @@
 import time
+import socket
 
 class SocketHandler:
+    """A socket handler class that handles multithreading tasks to run in the background.
+    
+    Attributes:
+        message_sent (bool): A boolean to see if a messgage has been sent.
+        waiting (bool): a boolean to check if currently waiting for a message.
+        connection_established (bool): a boolean to check if a connection has been established with a socket client.
+        row (int): the row of the tic tac toe board sent by a socket.
+        col (int): the col of the tic tac toe board sent by a socket.
+        response (str): the decision of player 1 if they want to play again.
+        response_received (bool): a boolean to check if if the response was received.
+        keep_running (bool): a boolean to check if a funciton should keep running.
+        client_socket (socket.socket): the client socket.
+        opponent_username (str): the username of the opponent.
+    """
 
     def __init__(self):
+        """Creates an SocketHandler object.
+        
+        """
+        
         self.message_sent = False
         self.waiting = False
         self.connection_established = False
@@ -15,19 +34,37 @@ class SocketHandler:
         self.opponent_username = 0
 
 
-    def handle_message(self, client_socket):
+    def handle_message(self, client_socket: socket.socket) -> None:
+        """Handles the row and column sent by a socket.
+
+        Args:
+            client_socket: the client socket.
+        """
+
         self.waiting = True
         self.row = int(client_socket.recv(1).decode())
         self.col = int(client_socket.recv(1).decode())
         self.message_sent = True
         self.waiting = False
 
-    def handle_response(self, client_socket):
+    def handle_response(self, client_socket: socket.socket) -> None:
+        """Handles the response from player 1 if the want to play again.
+        
+        Args:
+            client_socket: the client socket.
+        """
+
         self.response = client_socket.recv(1024).decode()
         self.response_received = True
 
 
-    def wait_for_connection(self, server_socket):
+    def wait_for_connection(self, server_socket: socket.socket) -> None:
+        """Attempts to connect accept a connection from a client socket.
+        
+        Args:
+            server_socket: the server socket.
+        """
+
         server_socket.listen(1)
         self.client_socket, addr = server_socket.accept()
         self.client_socket.send(b"Player 2")
@@ -35,7 +72,13 @@ class SocketHandler:
         self.connection_established = True
 
 
-    def wait_for_time(self, wait_time):
+    def wait_for_time(self, wait_time: int) -> None:
+        """Halts program for a specified amount of time.
+        
+        Args:
+            wait_time: the desired time to halt program.
+        """
+
         time.sleep(wait_time)
         self.keep_running = False
 
