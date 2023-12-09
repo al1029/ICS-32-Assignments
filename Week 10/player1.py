@@ -1,16 +1,18 @@
 import pygame
 import sys
 import socket
-import time
+import threading
 from button import Button
 from input_box import InputBox
 from gameboard import BoardClass
+from socket_handler import SocketHandler
+
 
 def get_font(size):
     return pygame.font.Font("assets/dpcomic.ttf", size)
 
 
-def play(SCREEN, SCREEN_WIDTH, BOARD, CLIENT_SOCKET):
+def play(SCREEN, SCREEN_WIDTH, BOARD, HANDLER, CLIENT_SOCKET):
 
     #Create clock object
     PLAY_CLOCK = pygame.time.Clock()
@@ -30,6 +32,12 @@ def play(SCREEN, SCREEN_WIDTH, BOARD, CLIENT_SOCKET):
             [Button(EMPTY_CELL, (100, 300), "", get_font(5), "Black", "White"), Button(EMPTY_CELL, (300, 300), "", get_font(5), "Black", "White"), Button(EMPTY_CELL, (500, 300), "", get_font(5), "Black", "White")],
             [Button(EMPTY_CELL, (100, 500), "", get_font(5), "Black", "White"), Button(EMPTY_CELL, (300, 500), "", get_font(5), "Black", "White"), Button(EMPTY_CELL, (500, 500), "", get_font(5), "Black", "White")]]
 
+    #Resets the HANDLER variables
+    HANDLER.reset_variables()
+
+    #Create variable for winner
+    display_winner = ""
+
     while True:
 
         if BOARD.is_winner():
@@ -37,14 +45,17 @@ def play(SCREEN, SCREEN_WIDTH, BOARD, CLIENT_SOCKET):
             if winner == "X":
                 BOARD.update_wins()
                 BOARD.reset_game_board()
-                return "play_again"
+                display_winner = BOARD.get_username()
+                break
             if winner == "O":
                 BOARD.update_losses()
                 BOARD.reset_game_board()
-                return "play_again"
+                display_winner = BOARD.get_opponent_username()
+                break
         if BOARD.board_is_full():
             BOARD.reset_game_board()
-            return "play again"
+            display_winner = "tie"
+            break
 
         #Get mouse position
         PLAY_MOUSE_POS = pygame.mouse.get_pos()
@@ -60,14 +71,25 @@ def play(SCREEN, SCREEN_WIDTH, BOARD, CLIENT_SOCKET):
 
         if player_turn:
             PLAYER_TEXT = get_font(50).render("Your Turn", True, "White")
+            PLAYER_TEXT_RECT = PLAYER_TEXT.get_rect(center=(SCREEN_WIDTH//2, 700))
+            SCREEN.blit(PLAYER_TEXT, PLAYER_TEXT_RECT)
 
         if not player_turn:
-            row = int(CLIENT_SOCKET.recv(1).decode())
-            col = int(CLIENT_SOCKET.recv(1).decode())
+            PLAYER_TEXT = get_font(50).render("Player 2's Turn...", True, "White")
+            PLAYER_TEXT_RECT = PLAYER_TEXT.get_rect(center=(SCREEN_WIDTH//2, 700))
+            SCREEN.blit(PLAYER_TEXT, PLAYER_TEXT_RECT)
+
+        if not player_turn and HANDLER.get_message_state() == False and HANDLER.get_wait_state() == False:
+            threading.Thread(target=HANDLER.handle_message, args=(CLIENT_SOCKET,)).start()
+
+        if not player_turn and HANDLER.get_message_state():
+            row = HANDLER.get_row()
+            col = HANDLER.get_col()
             GRID[row][col].change_image(O_IMG)
             GRID[row][col].update(SCREEN)
             BOARD.place_symbol_ui("O", row, col)
             BOARD.update_turn(BOARD.get_opponent_username())
+            HANDLER.reset_variables()
             player_turn = not player_turn
 
         for event in pygame.event.get():
@@ -88,13 +110,34 @@ def play(SCREEN, SCREEN_WIDTH, BOARD, CLIENT_SOCKET):
                                 BOARD.update_turn(BOARD.get_username())
                                 player_turn = not player_turn
 
-        if not player_turn:
-            PLAYER_TEXT = get_font(50).render("Player 2's Turn...", True, "White")
-            PLAYER_TEXT_RECT = PLAYER_TEXT.get_rect(center=(SCREEN_WIDTH//2, 700))
-            SCREEN.blit(PLAYER_TEXT, PLAYER_TEXT_RECT)
+        pygame.display.update()
+        PLAY_CLOCK.tick(30)
+
+    #Wait for 1 second and then move to next screen
+    threading.Thread(target=HANDLER.wait_for_time, args=(1,)).start()
+    while HANDLER.get_keep_running():
+
+        SCREEN.fill("#4875b7")
+
+        if display_winner == "tie":
+            TIE_TEXT = get_font(60).render("The game has tied!", True, "#b68f40")
+            TIE_RECT = TIE_TEXT.get_rect(center=(SCREEN_WIDTH//2, 100))
+            SCREEN.blit(TIE_TEXT, TIE_RECT)
+        else:
+            WINNER_TEXT = get_font(60).render(f"{display_winner} has won!", True, "#b68f40")
+            WINNER_RECT = WINNER_TEXT.get_rect(center=(SCREEN_WIDTH//2, 100))
+            SCREEN.blit(WINNER_TEXT, WINNER_RECT)
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
 
         pygame.display.update()
         PLAY_CLOCK.tick(30)
+
+    HANDLER.reset_variables()
+    return "play_again"
 
 
 def play_again(SCREEN, SCREEN_WIDTH, CLIENT_SOCKET):
@@ -246,7 +289,7 @@ def user_info(SCREEN, SCREEN_WIDTH, BOARD):
                             #Sets usernames
                             BOARD.set_username(username)
                             client_socket.send(username.encode())
-                            BOARD.set_opponent_username(client_socket.recv(1024).decode)
+                            BOARD.set_opponent_username(client_socket.recv(1024).decode())
 
                             return ["play", client_socket]
                     else:
@@ -341,20 +384,23 @@ def run():
     #Creating variable for screen state
     screen_state = "main_menu"
 
+    HANDLER = SocketHandler()
+
     #Running game loop
-
-
-    """REMEMBER TO IMPLEMENT A CLASS THAT HANDLES THREADING FOR YOU"""
     while True:
         if screen_state == "main_menu":
             screen_state = main_menu(SCREEN, SCREEN_WIDTH)
+
         if screen_state == "user_info":
             screen_state, CLIENT_SOCKET = user_info(SCREEN, SCREEN_WIDTH, BOARD)
+
         if screen_state == "play":
             BOARD.update_games_played()
-            screen_state = play(SCREEN, SCREEN_WIDTH, BOARD, CLIENT_SOCKET)
+            screen_state = play(SCREEN, SCREEN_WIDTH, BOARD, HANDLER, CLIENT_SOCKET)
+
         if screen_state == "play_again":
             screen_state = play_again(SCREEN, SCREEN_WIDTH, CLIENT_SOCKET)
+
         if screen_state == "stats":
             stats(SCREEN, SCREEN_WIDTH)
 

@@ -266,3 +266,7 @@ class BoardClass:
         print(f"# of wins: {self.wins}")
         print(f"# of losses: {self.losses}")
         print(f"# of ties: {self.ties}")
+
+    
+    def compute_stats(self) -> None:
+        return [self.user_name, self.opponent, self.num_games, self.wins, self.losses, self.ties]

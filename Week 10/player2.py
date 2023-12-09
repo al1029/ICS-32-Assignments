@@ -5,12 +5,14 @@ import threading
 from button import Button
 from input_box import InputBox
 from gameboard import BoardClass
+from socket_handler import SocketHandler
+
 
 def get_font(size):
     return pygame.font.Font("assets/dpcomic.ttf", size)
 
 
-def play(SCREEN, SCREEN_WIDTH, BOARD, CLIENT_SOCKET):
+def play(SCREEN, SCREEN_WIDTH, BOARD, HANDLER, CLIENT_SOCKET):
 
     #Create clock object
     PLAY_CLOCK = pygame.time.Clock()
@@ -30,24 +32,30 @@ def play(SCREEN, SCREEN_WIDTH, BOARD, CLIENT_SOCKET):
             [Button(EMPTY_CELL, (100, 300), "", get_font(5), "Black", "White"), Button(EMPTY_CELL, (300, 300), "", get_font(5), "Black", "White"), Button(EMPTY_CELL, (500, 300), "", get_font(5), "Black", "White")],
             [Button(EMPTY_CELL, (100, 500), "", get_font(5), "Black", "White"), Button(EMPTY_CELL, (300, 500), "", get_font(5), "Black", "White"), Button(EMPTY_CELL, (500, 500), "", get_font(5), "Black", "White")]]
 
+    #Resets the HANDLER variables
+    HANDLER.reset_variables()
+
+    #Create variable for winner
+    display_winner = ""
+
     while True:
 
         if BOARD.is_winner():
-            print("winner found")
             winner = BOARD.find_winner()
-            print("winner is ", winner)
             if winner == "O":
                 BOARD.update_wins()
                 BOARD.reset_game_board()
-                return "play_again"
+                display_winner = BOARD.get_username()
+                break
             if winner == "X":
                 BOARD.update_losses()
                 BOARD.reset_game_board()
-                print("moving to play again screen")
-                return "play_again"
+                display_winner = BOARD.get_opponent_username()
+                break
         if BOARD.board_is_full():
+            display_winner = "tie"
             BOARD.reset_game_board()
-            return "play again"
+            break
 
         #Get mouse position
         PLAY_MOUSE_POS = pygame.mouse.get_pos()
@@ -61,17 +69,28 @@ def play(SCREEN, SCREEN_WIDTH, BOARD, CLIENT_SOCKET):
             for button in block:
                 button.update(SCREEN)
 
-        if player_turn:
-            PLAYER_TEXT = get_font(50).render("Your Turn", True, "White")
+        if not player_turn and HANDLER.get_message_state() == False and HANDLER.get_wait_state() == False:
+            threading.Thread(target=HANDLER.handle_message, args=(CLIENT_SOCKET,)).start()
 
-        if not player_turn:
-            row = int(CLIENT_SOCKET.recv(1).decode())
-            col = int(CLIENT_SOCKET.recv(1).decode())
+        if not player_turn and HANDLER.get_message_state():
+            row = HANDLER.get_row()
+            col = HANDLER.get_col()
             GRID[row][col].change_image(X_IMG)
             GRID[row][col].update(SCREEN)
             BOARD.place_symbol_ui("X", row, col)
             BOARD.update_turn(BOARD.get_opponent_username())
+            HANDLER.reset_variables()
             player_turn = not player_turn
+
+        if not player_turn:
+            PLAYER_TEXT = get_font(50).render(f"{BOARD.get_opponent_username()}'s turn...", True, "White")
+            PLAYER_TEXT_RECT = PLAYER_TEXT.get_rect(center=(SCREEN_WIDTH//2, 700))
+            SCREEN.blit(PLAYER_TEXT, PLAYER_TEXT_RECT)
+
+        if player_turn:
+            PLAYER_TEXT = get_font(50).render("Your Turn", True, "White")
+            PLAYER_TEXT_RECT = PLAYER_TEXT.get_rect(center=(SCREEN_WIDTH//2, 700))
+            SCREEN.blit(PLAYER_TEXT, PLAYER_TEXT_RECT)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -91,29 +110,64 @@ def play(SCREEN, SCREEN_WIDTH, BOARD, CLIENT_SOCKET):
                                 BOARD.update_turn(BOARD.get_username())
                                 player_turn = not player_turn
 
-        if not player_turn:
-            PLAYER_TEXT = get_font(50).render(f"{BOARD.get_opponent_username}'s turn...", True, "White")
-            PLAYER_TEXT_RECT = PLAYER_TEXT.get_rect(center=(SCREEN_WIDTH//2, 700))
-            SCREEN.blit(PLAYER_TEXT, PLAYER_TEXT_RECT)
+        pygame.display.update()
+        PLAY_CLOCK.tick(30)
+
+    #Wait for 1 second and then move to next screen
+    threading.Thread(target=HANDLER.wait_for_time, args=(1,)).start()
+    while HANDLER.get_keep_running():
+
+        SCREEN.fill("#4875b7")
+
+        if display_winner == "tie":
+            TIE_TEXT = get_font(60).render("The game has tied!", True, "#b68f40")
+            TIE_RECT = TIE_TEXT.get_rect(center=(SCREEN_WIDTH//2, 100))
+            SCREEN.blit(TIE_TEXT, TIE_RECT)
+        else:
+            WINNER_TEXT = get_font(60).render(f"{display_winner} has won!", True, "#b68f40")
+            WINNER_RECT = WINNER_TEXT.get_rect(center=(SCREEN_WIDTH//2, 100))
+            SCREEN.blit(WINNER_TEXT, WINNER_RECT)
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
 
         pygame.display.update()
         PLAY_CLOCK.tick(30)
 
+    HANDLER.reset_variables()
+    return "play_again"
 
-def play_again(SCREEN, SCREEN_WIDTH, BOARD, CLIENT_SOCKET, SERVER_SOCKET):
-    print("made it to play again screen")
 
-    #Set background
-    SCREEN.fill("#4875b7")
+def play_again(SCREEN, SCREEN_WIDTH, HANDLER, CLIENT_SOCKET, SERVER_SOCKET):
 
-    #Set title text
-    PLAY_AGAIN_TEXT = get_font(75).render(f"Waiting if {BOARD.get_opponent_username} wants to play again", True, "#b68f40")
-    PLAY_AGAIN_RECT = PLAY_AGAIN_TEXT.get_rect(center=(SCREEN_WIDTH//2, 100))
-    SCREEN.blit(PLAY_AGAIN_TEXT, PLAY_AGAIN_RECT)
+    #Initialize clock object
+    PLAY_AGAIN_CLOCK = pygame.time.Clock()
 
-    pygame.display.update()
+    #Handle response on new thread
+    threading.Thread(target=HANDLER.handle_response, args=(CLIENT_SOCKET,)).start()
 
-    response = CLIENT_SOCKET.recv(1024).decode()
+    while HANDLER.response_received == False:
+
+        #Set background
+        SCREEN.fill("#4875b7")
+
+        #Set title text
+        PLAY_AGAIN_TEXT = get_font(70).render(f"Waiting to play again", True, "#b68f40")
+        PLAY_AGAIN_RECT = PLAY_AGAIN_TEXT.get_rect(center=(SCREEN_WIDTH//2, 100))
+        SCREEN.blit(PLAY_AGAIN_TEXT, PLAY_AGAIN_RECT)
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+
+        pygame.display.update()
+        PLAY_AGAIN_CLOCK.tick(30)
+        
+    response = HANDLER.get_response()
+    HANDLER.reset_variables()
     if response == "Play Again":
         return "play"
     else:
@@ -121,9 +175,11 @@ def play_again(SCREEN, SCREEN_WIDTH, BOARD, CLIENT_SOCKET, SERVER_SOCKET):
         return "stats"
 
 
-def stats(SCREEN, SCREEN_WIDTH):
+def stats(SCREEN, SCREEN_WIDTH, BOARD):
 
     STATS_CLOCK = pygame.time.Clock()
+
+    username, opponent, num_games, num_wins, num_losses, num_ties = BOARD.compute_stats()
 
     while True:
         SCREEN.fill("#4875b7")
@@ -272,13 +328,16 @@ def main_menu(SCREEN, SCREEN_WIDTH):
         MENU_CLOCK.tick(30)
 
 
-def wait_screen(SCREEN, SCREEN_WIDTH, BOARD, SERVER_SOCKET):
+def wait_screen(SCREEN, SCREEN_WIDTH, BOARD, HANDLER, SERVER_SOCKET):
 
+    #Initialize clock
     WAIT_CLOCK = pygame.time.Clock()
-    global connection_established 
-    connection_established = False
-    threading.Thread(target=waiting_for_connection, args=(BOARD, SERVER_SOCKET)).start()
-    while connection_established == False:
+
+    #Handle connection on new thread
+    threading.Thread(target=HANDLER.wait_for_connection, args=(SERVER_SOCKET,)).start()
+
+    #Display screen
+    while HANDLER.get_connection_state() == False:
         SCREEN.fill("#4875b7")
         CONNECTION_TEXT = get_font(50).render("Waiting for connection...", True, "#b68f40")
         CONNECTION_RECT = CONNECTION_TEXT.get_rect(center=(SCREEN_WIDTH//2, 100))
@@ -291,47 +350,12 @@ def wait_screen(SCREEN, SCREEN_WIDTH, BOARD, SERVER_SOCKET):
                 
         pygame.display.update()
         WAIT_CLOCK.tick(30)
-        print("running")
 
-    return "play"
+    #Set the username of the opponent
+    BOARD.set_opponent_username(HANDLER.get_opponent_username())
 
+    return ["play", HANDLER.get_client_socket()]
 
-def waiting_for_connection(BOARD, SERVER_SOCKET):
-    print("waiting for connection")
-    global connection_established, CLIENT_SOCKET
-    SERVER_SOCKET.listen(1)
-    CLIENT_SOCKET, addr = SERVER_SOCKET.accept()
-    print("accepted a connection")
-    opponent_username = CLIENT_SOCKET.recv(1024).decode()
-    print(opponent_username)
-    BOARD.set_opponent_username(opponent_username)
-    CLIENT_SOCKET.send(b"Player 2")
-    connection_established = True
-
-    return True
-
-
-"""def waiting_for_connection(SCREEN, SCREEN_WIDTH, BOARD, SERVER_SOCKET):
-
-    SCREEN.fill("#4875b7")
-
-    CONNECTION_TEXT = get_font(50).render("Waiting for connection...", True, "#b68f40")
-    CONNECTION_RECT = CONNECTION_TEXT.get_rect(center=(SCREEN_WIDTH//2, 100))
-    SCREEN.blit(CONNECTION_TEXT, CONNECTION_RECT)
-
-    pygame.display.update()
-
-    #Wait for a connection
-    SERVER_SOCKET.listen(1)
-    client_socket, client_address = SERVER_SOCKET.accept()
-    #Set opponent username
-    BOARD.set_opponent_username(client_socket.recv(1024).decode())
-    print(BOARD.get_opponent_username)
-    client_socket.send(b"Player 2")
-    print()
-
-    return ["play", client_socket]
-"""
 
 def start_server(ip, port) -> socket.socket:
     """Creates a server.
@@ -361,11 +385,13 @@ def run():
 
     #Creating variable for socket
     SERVER_SOCKET = ""
-    global CLIENT_SOCKET 
     CLIENT_SOCKET = ""
 
     #Initializing game board
     BOARD = BoardClass("Placeholder", "Placeholder")
+
+    #Initializing socket handler
+    HANDLER = SocketHandler()
 
     #Creating variable for screen state
     screen_state = "main_menu"
@@ -380,17 +406,17 @@ def run():
 
         if screen_state == "waiting_for_connection":
             #screen_state, CLIENT_SOCKET = waiting_for_connection(SCREEN, SCREEN_WIDTH, BOARD, SERVER_SOCKET)
-            screen_state = wait_screen(SCREEN, SCREEN_WIDTH, BOARD, SERVER_SOCKET)
+            screen_state, CLIENT_SOCKET = wait_screen(SCREEN, SCREEN_WIDTH, BOARD, HANDLER, SERVER_SOCKET)
 
         if screen_state == "play":
             BOARD.update_games_played()
-            screen_state = play(SCREEN, SCREEN_WIDTH, BOARD, CLIENT_SOCKET)
+            screen_state = play(SCREEN, SCREEN_WIDTH, BOARD, HANDLER, CLIENT_SOCKET)
 
         if screen_state == "play_again":
-            screen_state = play_again(SCREEN, SCREEN_WIDTH, CLIENT_SOCKET)
+            screen_state = play_again(SCREEN, SCREEN_WIDTH, HANDLER, CLIENT_SOCKET, SERVER_SOCKET)
 
         if screen_state == "stats":
-            stats(SCREEN, SCREEN_WIDTH)
+            stats(SCREEN, SCREEN_WIDTH, BOARD)
 
 
 if __name__ == "__main__":
