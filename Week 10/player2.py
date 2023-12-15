@@ -36,7 +36,7 @@ def get_font(size: int) -> pygame.font:
     Returns:
         the text font
     """
-    return pygame.font.Font("assets/dpcomic.ttf", size)
+    return pygame.font.Font("dpcomic.ttf", size)
 
 
 def play(SCREEN: pygame.display, SCREEN_WIDTH: int, BOARD: BoardClass, HANDLER: SocketHandler, CLIENT_SOCKET: socket.socket) -> str:
@@ -57,10 +57,10 @@ def play(SCREEN: pygame.display, SCREEN_WIDTH: int, BOARD: BoardClass, HANDLER: 
     PLAY_CLOCK = pygame.time.Clock()
 
     #Get background image
-    PLAY_BACKGROUND = pygame.image.load("assets/Board.png")
-    X_IMG = pygame.image.load("assets/X.png")
-    O_IMG = pygame.image.load("assets/O.png")
-    EMPTY_CELL = pygame.image.load("assets/Empty_Cell.png")
+    PLAY_BACKGROUND = pygame.image.load("Board.png")
+    X_IMG = pygame.image.load("X.png")
+    O_IMG = pygame.image.load("O.png")
+    EMPTY_CELL = pygame.image.load("Empty_Cell.png")
     PLAYER_TEXT = get_font(50).render("", True, "White")
 
     #Player 1 gets first turn
@@ -271,7 +271,7 @@ def stats(SCREEN: pygame.display, SCREEN_WIDTH: int, BOARD: BoardClass) -> None:
         TIES_RECT = TIES_TEXT.get_rect(center=(SCREEN_WIDTH//2, 350))
         SCREEN.blit(TIES_TEXT, TIES_RECT)
 
-        QUIT_BUTTON = Button(image=pygame.image.load("assets/Button.png"), pos=(SCREEN_WIDTH//2, 450), text_input="QUIT", font=get_font(75), base_color="White", hovering_color="#b68f40")
+        QUIT_BUTTON = Button(image=pygame.image.load("Button.png"), pos=(SCREEN_WIDTH//2, 450), text_input="QUIT", font=get_font(75), base_color="White", hovering_color="#b68f40")
         QUIT_BUTTON.change_color(STATS_MOUSE_POS)
         QUIT_BUTTON.update(SCREEN)
 
@@ -338,12 +338,12 @@ def user_info(SCREEN: pygame.display, SCREEN_WIDTH: int, BOARD: BoardClass) -> l
         SCREEN.blit(ERROR_TEXT, ERROR_RECT)
         
         #Creates connect button
-        INFO_CONNECT_BUTTON = Button(image=pygame.image.load("assets/Button.png"), pos=(SCREEN_WIDTH//2, 500), text_input="CONNECT", font=get_font(75), base_color="White", hovering_color="#b68f40")
+        INFO_CONNECT_BUTTON = Button(image=pygame.image.load("Button.png"), pos=(SCREEN_WIDTH//2, 500), text_input="CONNECT", font=get_font(75), base_color="White", hovering_color="#b68f40")
         INFO_CONNECT_BUTTON.change_color(INFO_MOUSE_POS)
         INFO_CONNECT_BUTTON.update(SCREEN)
 
         #Creates back button
-        INFO_BACK_BUTTON = Button(image=pygame.image.load("assets/Button.png"), pos=(SCREEN_WIDTH//2, 650), text_input="BACK", font=get_font(75), base_color="White", hovering_color="#b68f40")
+        INFO_BACK_BUTTON = Button(image=pygame.image.load("Button.png"), pos=(SCREEN_WIDTH//2, 650), text_input="BACK", font=get_font(75), base_color="White", hovering_color="#b68f40")
         INFO_BACK_BUTTON.change_color(INFO_MOUSE_POS)
         INFO_BACK_BUTTON.update(SCREEN)
 
@@ -405,8 +405,8 @@ def main_menu(SCREEN: pygame.display, SCREEN_WIDTH: int) -> str:
         MENU_TEXT = get_font(110).render("Tic-Tac-Toe", True, "#b68f40")
         MENU_RECT = MENU_TEXT.get_rect(center=(SCREEN_WIDTH//2, 100))
 
-        PLAY_BUTTON = Button(image=pygame.image.load("assets/Button.png"), pos=(SCREEN_WIDTH//2, 300), text_input="PLAY", font=get_font(75), base_color="White", hovering_color="#b68f40")
-        QUIT_BUTTON = Button(image=pygame.image.load("assets/Button.png"), pos=(SCREEN_WIDTH//2, 450), text_input="QUIT", font=get_font(75), base_color="White", hovering_color="#b68f40")
+        PLAY_BUTTON = Button(image=pygame.image.load("Button.png"), pos=(SCREEN_WIDTH//2, 300), text_input="PLAY", font=get_font(75), base_color="White", hovering_color="#b68f40")
+        QUIT_BUTTON = Button(image=pygame.image.load("Button.png"), pos=(SCREEN_WIDTH//2, 450), text_input="QUIT", font=get_font(75), base_color="White", hovering_color="#b68f40")
 
         SCREEN.blit(MENU_TEXT, MENU_RECT)
 
@@ -495,8 +495,8 @@ def error_screen(SCREEN: pygame.display, SCREEN_WIDTH: int) -> str:
         TRY_AGAIN_TEXT = get_font(110).render("Try again?", True, "#b68f40")
         TRY_AGAIN_RECT = TRY_AGAIN_TEXT.get_rect(center=(SCREEN_WIDTH//2, 150))
 
-        YES_BUTTON = Button(image=pygame.image.load("assets/Button.png"), pos=(SCREEN_WIDTH//2, 300), text_input="YES", font=get_font(75), base_color="White", hovering_color="#b68f40")
-        NO_BUTTON = Button(image=pygame.image.load("assets/Button.png"), pos=(SCREEN_WIDTH//2, 500), text_input="NO", font=get_font(75), base_color="White", hovering_color="#b68f40")
+        YES_BUTTON = Button(image=pygame.image.load("Button.png"), pos=(SCREEN_WIDTH//2, 300), text_input="YES", font=get_font(75), base_color="White", hovering_color="#b68f40")
+        NO_BUTTON = Button(image=pygame.image.load("Button.png"), pos=(SCREEN_WIDTH//2, 500), text_input="NO", font=get_font(75), base_color="White", hovering_color="#b68f40")
         
         SCREEN.blit(ERROR_TEXT, ERROR_RECT)
         SCREEN.blit(TRY_AGAIN_TEXT, TRY_AGAIN_RECT)
